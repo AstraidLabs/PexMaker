@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PexMaker.Engine.Domain\PexMaker.Engine.Domain.csproj" />
     <ProjectReference Include="..\PexMaker.Engine.Abstractions\PexMaker.Engine.Abstractions.csproj" />
+    <ProjectReference Include="..\PexMaker.Engine.Contracts\PexMaker.Engine.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
