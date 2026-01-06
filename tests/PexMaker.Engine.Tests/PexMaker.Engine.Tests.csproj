@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="SkiaSharp" Version="2.88.6" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PexMaker.Engine\PexMaker.Engine.Domain\PexMaker.Engine.Domain.csproj" />
+    <ProjectReference Include="..\..\src\PexMaker.Engine\PexMaker.Engine.Abstractions\PexMaker.Engine.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\PexMaker.Engine\PexMaker.Engine.Application\PexMaker.Engine.Application.csproj" />
+    <ProjectReference Include="..\..\src\PexMaker.Engine\PexMaker.Engine.Infrastructure\PexMaker.Engine.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

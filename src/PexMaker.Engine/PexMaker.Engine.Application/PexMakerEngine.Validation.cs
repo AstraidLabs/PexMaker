@@ -1,0 +1,92 @@
+using PexMaker.Engine.Domain;
+
+namespace PexMaker.Engine.Application;
+
+public sealed partial class PexMakerEngine
+{
+    public Task<ProjectValidationResult> ValidateAsync(PexProject project, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var errors = new List<ValidationError>();
+        var warnings = new List<ValidationError>();
+
+        if (project.PairCount < 1 || project.PairCount > EngineLimits.MaxPairs)
+        {
+            errors.Add(new ValidationError(EngineErrorCode.InvalidPairCount, $"Pair count must be between 1 and {EngineLimits.MaxPairs}", nameof(project.PairCount)));
+        }
+
+        if (project.FrontImages is null || project.FrontImages.Count < project.PairCount)
+        {
+            errors.Add(new ValidationError(EngineErrorCode.InsufficientFrontImages, $"At least {project.PairCount} front images are required", nameof(project.FrontImages)));
+        }
+        else if (project.FrontImages.Count > EngineLimits.MaxImagesPerProject)
+        {
+            warnings.Add(new ValidationError(EngineErrorCode.InvalidMeasurement, $"Front image count exceeds the suggested maximum of {EngineLimits.MaxImagesPerProject}", nameof(project.FrontImages)));
+        }
+
+        if (project.BackImage is null)
+        {
+            errors.Add(new ValidationError(EngineErrorCode.MissingBackImage, "Back image is required", nameof(project.BackImage)));
+        }
+
+        if (project.Dpi.Value < EngineLimits.MinDpi || project.Dpi.Value > EngineLimits.MaxDpi)
+        {
+            errors.Add(new ValidationError(EngineErrorCode.InvalidDpi, $"DPI must be between {EngineLimits.MinDpi} and {EngineLimits.MaxDpi}", nameof(project.Dpi)));
+        }
+
+        ValidateMeasurements(project, errors);
+
+        var (pageWidthMm, pageHeightMm) = ResolvePageSize(project.Layout);
+        var usableWidth = pageWidthMm - (project.Layout.MarginLeft.Value + project.Layout.MarginRight.Value);
+        var usableHeight = pageHeightMm - (project.Layout.MarginTop.Value + project.Layout.MarginBottom.Value);
+        var grid = LayoutMath.ComputeGrid(usableWidth, usableHeight, project.Layout.CardWidth.Value, project.Layout.CardHeight.Value, project.Layout.Gutter.Value);
+
+        if (grid.PerPage < 1)
+        {
+            errors.Add(new ValidationError(EngineErrorCode.LayoutDoesNotFit, "No cards fit on the configured page", nameof(project.Layout)));
+        }
+
+        return Task.FromResult(new ProjectValidationResult(errors, warnings));
+    }
+
+    private static void ValidateMeasurements(PexProject project, ICollection<ValidationError> errors)
+    {
+        var layout = project.Layout ?? new LayoutOptions();
+        var measurements = new (Mm Value, string Path)[]
+        {
+            (layout.MarginLeft, nameof(layout.MarginLeft)),
+            (layout.MarginTop, nameof(layout.MarginTop)),
+            (layout.MarginRight, nameof(layout.MarginRight)),
+            (layout.MarginBottom, nameof(layout.MarginBottom)),
+            (layout.Gutter, nameof(layout.Gutter)),
+            (layout.CardWidth, nameof(layout.CardWidth)),
+            (layout.CardHeight, nameof(layout.CardHeight)),
+            (layout.CornerRadius, nameof(layout.CornerRadius)),
+            (layout.BorderThickness, nameof(layout.BorderThickness)),
+            (layout.Bleed, nameof(layout.Bleed)),
+        };
+
+        foreach (var measurement in measurements)
+        {
+            if (!measurement.Value.IsFinite || measurement.Value.Value < EngineLimits.MinMm || measurement.Value.Value > EngineLimits.MaxMm)
+            {
+                errors.Add(new ValidationError(EngineErrorCode.InvalidMeasurement, $"Measurement {measurement.Path} must be finite and between {EngineLimits.MinMm} and {EngineLimits.MaxMm} mm", measurement.Path));
+            }
+        }
+    }
+
+    private static (double WidthMm, double HeightMm) ResolvePageSize(LayoutOptions layout)
+    {
+        var (w, h) = layout.Format switch
+        {
+            PageFormat.A4 => (EngineDefaults.A4Width.Value, EngineDefaults.A4Height.Value),
+            PageFormat.A3 => (EngineDefaults.A3Width.Value, EngineDefaults.A3Height.Value),
+            PageFormat.Letter => (EngineDefaults.LetterWidth.Value, EngineDefaults.LetterHeight.Value),
+            _ => (EngineDefaults.A4Width.Value, EngineDefaults.A4Height.Value),
+        };
+
+        return layout.Orientation == PageOrientation.Portrait ? (w, h) : (h, w);
+    }
+}
