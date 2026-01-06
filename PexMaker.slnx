@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PexMaker.Engine/PexMaker.Engine.csproj" />
+  <Project Path="PexMaker/PexMaker.csproj" />
+</Solution>
