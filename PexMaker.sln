@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PexMaker.Engine.Application
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PexMaker.Engine.Infrastructure", "src\PexMaker.Engine\PexMaker.Engine.Infrastructure\PexMaker.Engine.Infrastructure.csproj", "{C275FFC7-D001-48C5-9D70-3D93756426F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PexMaker.Engine.Contracts", "src\PexMaker.Engine\PexMaker.Engine.Contracts\PexMaker.Engine.Contracts.csproj", "{45A89DBD-0DF7-416D-98A9-7849A09FD479}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,18 @@ Global
 		{C275FFC7-D001-48C5-9D70-3D93756426F3}.Release|x64.Build.0 = Release|Any CPU
 		{C275FFC7-D001-48C5-9D70-3D93756426F3}.Release|x86.ActiveCfg = Release|Any CPU
 		{C275FFC7-D001-48C5-9D70-3D93756426F3}.Release|x86.Build.0 = Release|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Debug|x64.Build.0 = Debug|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Debug|x86.Build.0 = Debug|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x64.ActiveCfg = Release|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x64.Build.0 = Release|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x86.ActiveCfg = Release|Any CPU
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -98,5 +112,6 @@ Global
 		{26DA11C2-5895-41EF-AD21-0DCE5D52B973} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
 		{EF8720B7-5273-4E27-8555-9C6577256DE5} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
 		{C275FFC7-D001-48C5-9D70-3D93756426F3} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
+		{45A89DBD-0DF7-416D-98A9-7849A09FD479} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
 	EndGlobalSection
 EndGlobal

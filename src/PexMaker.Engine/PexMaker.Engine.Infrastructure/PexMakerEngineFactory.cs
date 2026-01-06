@@ -13,7 +13,7 @@ public static class PexMakerEngineFactory
         IPageRenderer renderer = new SkiaPageRenderer();
         ISheetExporter exporter = new SkiaSheetExporter();
         IRandomProvider randomProvider = new RandomProvider();
-        IProjectSerializer serializer = new ProjectSerializer();
+        IProjectSerializer serializer = new JsonProjectSerializer();
 
         return new PexMakerEngine(fileSystem, decoder, processor, renderer, exporter, randomProvider, serializer);
     }

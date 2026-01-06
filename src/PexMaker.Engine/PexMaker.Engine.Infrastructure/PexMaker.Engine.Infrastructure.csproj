@@ -8,6 +8,7 @@
     <ProjectReference Include="../PexMaker.Engine.Domain/PexMaker.Engine.Domain.csproj" />
     <ProjectReference Include="../PexMaker.Engine.Abstractions/PexMaker.Engine.Abstractions.csproj" />
     <ProjectReference Include="../PexMaker.Engine.Application/PexMaker.Engine.Application.csproj" />
+    <ProjectReference Include="../PexMaker.Engine.Contracts/PexMaker.Engine.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
