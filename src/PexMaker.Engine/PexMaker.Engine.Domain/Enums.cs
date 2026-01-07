@@ -19,6 +19,12 @@ public enum FitMode
     Contain,
 }
 
+public enum SheetSide
+{
+    Front,
+    Back,
+}
+
 public enum EngineErrorCode
 {
     Unknown = 0,
@@ -30,4 +36,7 @@ public enum EngineErrorCode
     LayoutDoesNotFit,
     ExceedsPageLimit,
     ExceedsOutputLimit,
+    WorkingSetTooLarge,
+    UnsupportedFormat,
+    ExportCanceled,
 }
