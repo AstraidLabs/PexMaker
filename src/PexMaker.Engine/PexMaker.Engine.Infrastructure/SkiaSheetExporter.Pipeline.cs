@@ -142,7 +142,9 @@ internal sealed partial class SkiaSheetExporter
             var renderedCount = 0;
             await foreach (var job in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
-                var encoded = await RenderPageAsync(request, job, caches, cancellationToken).ConfigureAwait(false);
+                var rasterizerRequest = CreateRasterizerRequest(request, job.PageLayout);
+                var rasterized = await _pageRasterizer.RenderPageAsync(rasterizerRequest, caches, cancellationToken).ConfigureAwait(false);
+                var encoded = new EncodedPage(job.PageIndex, job.IsBackSide, job.OutputPath, rasterized.PngBytes);
                 await writer.WriteAsync(encoded, cancellationToken).ConfigureAwait(false);
                 if (request.Progress is not null && totalPages > 0)
                 {
@@ -184,5 +186,38 @@ internal sealed partial class SkiaSheetExporter
                 request.Progress.Report(new EngineProgress("WritePage", writtenCount, totalPages));
             }
         }
+    }
+
+    private static PageRasterizerRequest CreateRasterizerRequest(SheetExportRequest request, LayoutPage page)
+    {
+        return new PageRasterizerRequest
+        {
+            Layout = request.Layout,
+            Page = page,
+            Cards = request.Cards,
+            BackImage = request.BackImage,
+            IncludeCutMarks = request.IncludeCutMarks,
+            CutMarksPerCard = request.CutMarksPerCard,
+            CutMarkLengthPx = request.CutMarkLengthPx,
+            CutMarkThicknessPx = request.CutMarkThicknessPx,
+            CutMarkOffsetPx = request.CutMarkOffsetPx,
+            BorderEnabled = request.BorderEnabled,
+            BorderThicknessPx = request.BorderThicknessPx,
+            CornerRadiusPx = request.CornerRadiusPx,
+            CardWidthPx = request.CardWidthPx,
+            CardHeightPx = request.CardHeightPx,
+            BleedPx = request.BleedPx,
+            SafeAreaPx = request.SafeAreaPx,
+            ShowSafeAreaOverlay = request.ShowSafeAreaOverlay,
+            SafeAreaOverlayThicknessPx = request.SafeAreaOverlayThicknessPx,
+            IncludeRegistrationMarks = request.IncludeRegistrationMarks,
+            RegistrationMarkPlacement = request.RegistrationMarkPlacement,
+            RegistrationMarkSizePx = request.RegistrationMarkSizePx,
+            RegistrationMarkThicknessPx = request.RegistrationMarkThicknessPx,
+            RegistrationMarkOffsetPx = request.RegistrationMarkOffsetPx,
+            EnableParallelism = request.EnableParallelism,
+            MaxDegreeOfParallelism = request.MaxDegreeOfParallelism,
+            MaxCacheItems = request.MaxCacheItems,
+        };
     }
 }

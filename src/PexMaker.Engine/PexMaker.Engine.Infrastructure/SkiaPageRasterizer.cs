@@ -1,21 +1,39 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using PexMaker.Engine.Abstractions;
 using PexMaker.Engine.Domain;
 using SkiaSharp;
 
 namespace PexMaker.Engine.Infrastructure;
 
-internal sealed partial class SkiaSheetExporter
+internal sealed class SkiaPageRasterizer : IPageRasterizer
 {
-    private async Task<EncodedPage> RenderPageAsync(
-        SheetExportRequest request,
-        PageJob job,
+    private readonly IFileSystem _fileSystem;
+
+    public SkiaPageRasterizer(IFileSystem fileSystem)
+    {
+        _fileSystem = Guard.NotNull(fileSystem, nameof(fileSystem));
+    }
+
+    public async Task<PageRasterizerResult> RenderPageAsync(PageRasterizerRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        using var caches = new ExportCaches(Math.Max(1, request.MaxCacheItems));
+        return await RenderPageAsync(request, caches, cancellationToken).ConfigureAwait(false);
+    }
+
+    internal async Task<PageRasterizerResult> RenderPageAsync(
+        PageRasterizerRequest request,
         ExportCaches caches,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        var placements = job.PageLayout.Placements;
+        var placements = request.Page.Placements;
         var renderedCards = new SKBitmap[placements.Count];
         var renderTasks = new List<Task>();
 
@@ -29,7 +47,7 @@ internal sealed partial class SkiaSheetExporter
         {
             var index = i;
             var placement = placements[index];
-            var imageRef = job.IsBackSide ? request.BackImage : request.Cards[placement.DeckIndex];
+            var imageRef = request.Page.Side == SheetSide.Back ? request.BackImage : request.Cards[placement.DeckIndex];
 
             if (maxParallelism == 1)
             {
@@ -94,10 +112,10 @@ internal sealed partial class SkiaSheetExporter
         using var data = snapshot.Encode(SKEncodedImageFormat.Png, 100);
         var bytes = data.ToArray();
 
-        return new EncodedPage(job.PageIndex, job.IsBackSide, job.OutputPath, bytes);
+        return new PageRasterizerResult(request.Page.PageNumber, request.Page.Side, bytes);
     }
 
-    private SKBitmap GetRenderedCardBitmap(SheetExportRequest request, ExportCaches caches, ImageRef imageRef, CardPlacementPlan placement)
+    private SKBitmap GetRenderedCardBitmap(PageRasterizerRequest request, ExportCaches caches, ImageRef imageRef, CardPlacementPlan placement)
     {
         var bleedPx = Math.Max(0, request.BleedPx);
         var renderWidth = placement.Width + bleedPx * 2;
@@ -215,7 +233,7 @@ internal sealed partial class SkiaSheetExporter
         }
     }
 
-    private static void DrawCutMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
+    private static void DrawCutMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, PageRasterizerRequest request)
     {
         if (request.CutMarkLengthPx <= 0 || request.CutMarkThicknessPx <= 0)
         {
@@ -274,7 +292,7 @@ internal sealed partial class SkiaSheetExporter
         canvas.Restore();
     }
 
-    private static void DrawSafeAreaOverlay(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
+    private static void DrawSafeAreaOverlay(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, PageRasterizerRequest request)
     {
         if (request.SafeAreaPx <= 0 || request.SafeAreaOverlayThicknessPx <= 0)
         {
@@ -306,7 +324,7 @@ internal sealed partial class SkiaSheetExporter
         }
     }
 
-    private static void DrawRegistrationMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
+    private static void DrawRegistrationMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, PageRasterizerRequest request)
     {
         if (request.RegistrationMarkSizePx <= 0 || request.RegistrationMarkThicknessPx <= 0)
         {
@@ -363,7 +381,7 @@ internal sealed partial class SkiaSheetExporter
         }
     }
 
-    private static bool TryClampMark(SKPoint center, float halfSize, SheetExportRequest request, out SKPoint clamped)
+    private static bool TryClampMark(SKPoint center, float halfSize, PageRasterizerRequest request, out SKPoint clamped)
     {
         var minX = halfSize;
         var minY = halfSize;

@@ -68,7 +68,7 @@ public sealed class ExportRequest
     public string NamingPrefixBack { get; init; } = "back";
 
     /// <summary>
-    /// Export image format. Only "png" is currently supported.
+    /// Export format. Supported values: "png", "pdf".
     /// </summary>
     public string Format { get; init; } = "png";
 

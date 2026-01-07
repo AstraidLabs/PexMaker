@@ -1,5 +1,6 @@
 using System.Text;
 using PexMaker.Engine.Abstractions;
+using PexMaker.Engine.Domain;
 
 namespace PexMaker.Engine.Application;
 
@@ -31,5 +32,13 @@ public static class Naming
         };
 
         return $"{sanitized}_{pageNumber:000}.{extension}";
+    }
+
+    public static string PdfFileName(string? prefix, SheetSide side)
+    {
+        var baseName = string.IsNullOrWhiteSpace(prefix)
+            ? (side == SheetSide.Front ? "front" : "back")
+            : SafeFileName(prefix);
+        return $"{baseName}.pdf";
     }
 }
