@@ -13,7 +13,7 @@ internal sealed class DuplexSanityRule : IEvaluationRule
         }
 
         var duplexMode = context.Layout.DuplexMode;
-        if (duplexMode == DuplexMode.None && !context.Layout.MirrorBackside)
+        if (duplexMode == DuplexMode.None)
         {
             issues.Add(new EvaluationIssue(
                 EvaluationCodes.DuplexNotConfigured,
@@ -24,13 +24,7 @@ internal sealed class DuplexSanityRule : IEvaluationRule
             return;
         }
 
-        var normalized = duplexMode;
-        if (normalized == DuplexMode.None && context.Layout.MirrorBackside)
-        {
-            normalized = DuplexMode.MirrorColumns;
-        }
-
-        normalized = LayoutMath.NormalizeDuplexMode(normalized, context.Layout.Orientation);
+        var normalized = LayoutMath.NormalizeDuplexMode(duplexMode, context.Layout.Orientation);
 
         if (normalized == DuplexMode.None)
         {

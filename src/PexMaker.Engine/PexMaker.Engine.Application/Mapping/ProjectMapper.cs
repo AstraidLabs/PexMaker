@@ -5,7 +5,7 @@ using PexMaker.Engine.Domain;
 
 namespace PexMaker.Engine.Application.Mapping;
 
-internal static class ProjectMapper
+public static class ProjectMapper
 {
     public static MappingResult<PexProjectDto> ToDto(PexProject project)
     {
@@ -161,6 +161,10 @@ internal static class ProjectMapper
         var cutMarkThickness = ResolveOptionalMeasurement(dto.CutMarkThicknessMm, EngineDefaults.DefaultCutMarkThickness, nameof(LayoutOptions.CutMarkThickness), mode, issues, allowZero: true);
         var cutMarkOffset = ResolveOptionalMeasurement(dto.CutMarkOffsetMm, EngineDefaults.DefaultCutMarkOffset, nameof(LayoutOptions.CutMarkOffset), mode, issues, allowZero: true);
         var duplexMode = ParseDuplexMode(dto.DuplexMode, mode, issues);
+        if (duplexMode == DuplexMode.None && dto.MirrorBackside && string.IsNullOrWhiteSpace(dto.DuplexMode))
+        {
+            duplexMode = DuplexMode.MirrorColumns;
+        }
         var alignment = ParseGridAlignment(dto.Alignment, mode, issues);
         var autoFitMode = ParseAutoFitMode(dto.AutoFitMode, mode, issues);
         var gridSpec = ResolveGridSpec(dto.GridColumns, dto.GridRows, mode, issues);
@@ -179,7 +183,6 @@ internal static class ProjectMapper
             CornerRadius = cornerRadius,
             BorderEnabled = dto.DrawBorder,
             BorderThickness = borderThickness,
-            MirrorBackside = dto.MirrorBackside,
             DuplexMode = duplexMode,
             Alignment = alignment,
             AutoFitMode = autoFitMode,
@@ -462,7 +465,7 @@ internal static class ProjectMapper
                 HeightMm = layout.CardHeight.Value,
             },
             CornerRadiusMm = layout.CornerRadius.Value,
-            MirrorBackside = layout.MirrorBackside,
+            MirrorBackside = layout.DuplexMode != DuplexMode.None,
             DuplexMode = layout.DuplexMode.ToString(),
             Alignment = layout.Alignment.ToString(),
             AutoFitMode = layout.AutoFitMode.ToString(),
