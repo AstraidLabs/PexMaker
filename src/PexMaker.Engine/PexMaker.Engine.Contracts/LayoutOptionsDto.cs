@@ -36,9 +36,9 @@ public sealed record LayoutOptionsDto
 
     public bool DrawCutMarks { get; init; }
 
-    public double CutMarkLengthMm { get; init; }
+    public double? CutMarkLengthMm { get; init; }
 
-    public double CutMarkThicknessMm { get; init; }
+    public double? CutMarkThicknessMm { get; init; }
 
-    public double CutMarkOffsetMm { get; init; }
+    public double? CutMarkOffsetMm { get; init; }
 }
