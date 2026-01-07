@@ -21,4 +21,7 @@ public static class EngineDefaults
     public const PageFormat DefaultPageFormat = PageFormat.A4;
     public const PageOrientation DefaultOrientation = PageOrientation.Portrait;
     public const FitMode DefaultFitMode = FitMode.Cover;
+    public const AutoFitMode DefaultAutoFitMode = AutoFitMode.None;
+    public const GridAlignment DefaultGridAlignment = GridAlignment.TopLeft;
+    public const DuplexMode DefaultDuplexMode = DuplexMode.None;
 }

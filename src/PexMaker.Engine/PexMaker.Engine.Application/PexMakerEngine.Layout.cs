@@ -21,7 +21,8 @@ public sealed partial class PexMakerEngine
         }
 
         var deck = BuildSequentialDeck(project);
-        return BuildLayoutPlan(project, deck);
+        var metrics = LayoutCalculator.Calculate(project.Layout);
+        return BuildLayoutPlan(project, deck, metrics);
     }
 
     private static Deck BuildSequentialDeck(PexProject project)
@@ -41,27 +42,24 @@ public sealed partial class PexMakerEngine
         return new Deck(cards, project.BackImage);
     }
 
-    private LayoutPlan BuildLayoutPlan(PexProject project, Deck deck)
+    private LayoutPlan BuildLayoutPlan(PexProject project, Deck deck, LayoutMetrics metrics)
     {
         var layout = project.Layout;
-        var (pageWidthMm, pageHeightMm) = ResolvePageSize(layout);
-        var pageWidthPx = Units.MmToPx(new Mm(pageWidthMm), project.Dpi);
-        var pageHeightPx = Units.MmToPx(new Mm(pageHeightMm), project.Dpi);
+        var pageWidthPx = Units.MmToPx(new Mm(metrics.PageWidthMm), project.Dpi);
+        var pageHeightPx = Units.MmToPx(new Mm(metrics.PageHeightMm), project.Dpi);
 
-        var usableWidth = pageWidthMm - (layout.MarginLeft.Value + layout.MarginRight.Value);
-        var usableHeight = pageHeightMm - (layout.MarginTop.Value + layout.MarginBottom.Value);
-        var gridTuple = LayoutMath.ComputeGrid(usableWidth, usableHeight, layout.CardWidth.Value, layout.CardHeight.Value, layout.Gutter.Value);
-        var grid = new LayoutGrid(gridTuple.Columns, gridTuple.Rows, gridTuple.PerPage);
-        if (grid.PerPage < 1)
+        var grid = new LayoutGrid(metrics.Columns, metrics.Rows, metrics.PerPage);
+        if (grid.PerPage < 1 || metrics.CardWidthMm <= 0 || metrics.CardHeightMm <= 0)
         {
             throw new InvalidOperationException("Layout cannot be computed because no cards fit on a page.");
         }
 
         var pages = new List<LayoutPage>();
-        var cardWidthPx = Units.MmToPx(layout.CardWidth, project.Dpi);
-        var cardHeightPx = Units.MmToPx(layout.CardHeight, project.Dpi);
+        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), project.Dpi);
+        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), project.Dpi);
         var perPage = grid.PerPage;
         var totalPages = (int)Math.Ceiling(deck.CardCount / (double)perPage);
+        var normalizedDuplex = NormalizeDuplex(layout);
 
         for (var pageIndex = 0; pageIndex < totalPages; pageIndex++)
         {
@@ -79,23 +77,36 @@ public sealed partial class PexMakerEngine
                 var row = slot / grid.Columns;
                 var col = slot % grid.Columns;
 
-                var xMm = layout.MarginLeft.Value + col * (layout.CardWidth.Value + layout.Gutter.Value);
-                var yMm = layout.MarginTop.Value + row * (layout.CardHeight.Value + layout.Gutter.Value);
+                var xMm = metrics.OriginXmm + col * (metrics.CardWidthMm + layout.Gutter.Value);
+                var yMm = metrics.OriginYmm + row * (metrics.CardHeightMm + layout.Gutter.Value);
                 var xPx = Units.MmToPx(new Mm(xMm), project.Dpi);
                 var yPx = Units.MmToPx(new Mm(yMm), project.Dpi);
 
                 frontPlacements.Add(new CardPlacementPlan(deckIndex, row, col, xPx, yPx, cardWidthPx, cardHeightPx));
 
-                var mirroredCol = layout.MirrorBackside ? LayoutMath.MirrorColumn(col, grid.Columns) : col;
-                var backXMm = layout.MarginLeft.Value + mirroredCol * (layout.CardWidth.Value + layout.Gutter.Value);
+                var (backRow, backCol) = LayoutMath.MapDuplex(row, col, grid.Rows, grid.Columns, normalizedDuplex);
+                var backXMm = metrics.OriginXmm + backCol * (metrics.CardWidthMm + layout.Gutter.Value);
+                var backYMm = metrics.OriginYmm + backRow * (metrics.CardHeightMm + layout.Gutter.Value);
                 var backXPx = Units.MmToPx(new Mm(backXMm), project.Dpi);
-                backPlacements.Add(new CardPlacementPlan(deckIndex, row, mirroredCol, backXPx, yPx, cardWidthPx, cardHeightPx));
+                var backYPx = Units.MmToPx(new Mm(backYMm), project.Dpi);
+                backPlacements.Add(new CardPlacementPlan(deckIndex, backRow, backCol, backXPx, backYPx, cardWidthPx, cardHeightPx));
             }
 
             pages.Add(new LayoutPage(pageIndex + 1, SheetSide.Front, frontPlacements));
             pages.Add(new LayoutPage(pageIndex + 1, SheetSide.Back, backPlacements));
         }
 
-        return new LayoutPlan(grid, pageWidthPx, pageHeightPx, new Mm(pageWidthMm), new Mm(pageHeightMm), pages);
+        return new LayoutPlan(grid, pageWidthPx, pageHeightPx, new Mm(metrics.PageWidthMm), new Mm(metrics.PageHeightMm), pages);
+    }
+
+    private static DuplexMode NormalizeDuplex(LayoutOptions layout)
+    {
+        var duplexMode = layout.DuplexMode;
+        if (duplexMode == DuplexMode.None && layout.MirrorBackside)
+        {
+            duplexMode = DuplexMode.MirrorColumns;
+        }
+
+        return LayoutMath.NormalizeDuplexMode(duplexMode, layout.Orientation);
     }
 }

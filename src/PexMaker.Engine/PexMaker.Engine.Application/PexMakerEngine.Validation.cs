@@ -38,12 +38,18 @@ public sealed partial class PexMakerEngine
 
         ValidateMeasurements(project, errors);
 
-        var (pageWidthMm, pageHeightMm) = ResolvePageSize(project.Layout);
-        var usableWidth = pageWidthMm - (project.Layout.MarginLeft.Value + project.Layout.MarginRight.Value);
-        var usableHeight = pageHeightMm - (project.Layout.MarginTop.Value + project.Layout.MarginBottom.Value);
-        var grid = LayoutMath.ComputeGrid(usableWidth, usableHeight, project.Layout.CardWidth.Value, project.Layout.CardHeight.Value, project.Layout.Gutter.Value);
+        var metrics = LayoutCalculator.Calculate(project.Layout);
+        if (project.Layout.AutoFitMode != AutoFitMode.None && project.Layout.Grid is null)
+        {
+            errors.Add(new ValidationError(EngineErrorCode.InvalidMeasurement, "Auto-fit requires grid specification.", nameof(project.Layout.Grid)));
+        }
+        else if (project.Layout.AutoFitMode != AutoFitMode.None && project.Layout.Grid is not null
+            && (project.Layout.Grid.Columns <= 0 || project.Layout.Grid.Rows <= 0))
+        {
+            errors.Add(new ValidationError(EngineErrorCode.InvalidMeasurement, "Grid columns and rows must be positive.", nameof(project.Layout.Grid)));
+        }
 
-        if (grid.PerPage < 1)
+        if (metrics.PerPage < 1 || metrics.CardWidthMm <= 0 || metrics.CardHeightMm <= 0)
         {
             errors.Add(new ValidationError(EngineErrorCode.LayoutDoesNotFit, "No cards fit on the configured page", nameof(project.Layout)));
         }
@@ -77,16 +83,5 @@ public sealed partial class PexMakerEngine
         }
     }
 
-    private static (double WidthMm, double HeightMm) ResolvePageSize(LayoutOptions layout)
-    {
-        var (w, h) = layout.Format switch
-        {
-            PageFormat.A4 => (EngineDefaults.A4Width.Value, EngineDefaults.A4Height.Value),
-            PageFormat.A3 => (EngineDefaults.A3Width.Value, EngineDefaults.A3Height.Value),
-            PageFormat.Letter => (EngineDefaults.LetterWidth.Value, EngineDefaults.LetterHeight.Value),
-            _ => (EngineDefaults.A4Width.Value, EngineDefaults.A4Height.Value),
-        };
-
-        return layout.Orientation == PageOrientation.Portrait ? (w, h) : (h, w);
-    }
+    private static (double WidthMm, double HeightMm) ResolvePageSize(LayoutOptions layout) => PageSizeResolver.ResolvePageSize(layout);
 }

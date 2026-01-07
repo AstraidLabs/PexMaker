@@ -29,7 +29,18 @@ public sealed record LayoutOptions
 
     public Mm BorderThickness { get; init; } = EngineDefaults.DefaultBorderThickness;
 
+    [Obsolete("Use DuplexMode instead.")]
     public bool MirrorBackside { get; init; } = true;
+
+    public DuplexMode DuplexMode { get; init; } = EngineDefaults.DefaultDuplexMode;
+
+    public GridAlignment Alignment { get; init; } = EngineDefaults.DefaultGridAlignment;
+
+    public AutoFitMode AutoFitMode { get; init; } = EngineDefaults.DefaultAutoFitMode;
+
+    public GridSpec? Grid { get; init; }
+
+    public bool PreferSquareCards { get; init; } = false;
 
     public Mm Bleed { get; init; } = Mm.Zero;
 

@@ -157,6 +157,10 @@ internal static class ProjectMapper
         var cornerRadius = ResolveMeasurement(dto.CornerRadiusMm, EngineDefaults.DefaultCornerRadius, nameof(LayoutOptions.CornerRadius), mode, issues, allowZero: true);
         var borderThickness = ResolveMeasurement(dto.BorderThicknessMm, EngineDefaults.DefaultBorderThickness, nameof(LayoutOptions.BorderThickness), mode, issues, allowZero: true);
         var bleed = ResolveMeasurement(dto.BleedMm, Mm.Zero, nameof(LayoutOptions.Bleed), mode, issues, allowZero: true);
+        var duplexMode = ParseDuplexMode(dto.DuplexMode, mode, issues);
+        var alignment = ParseGridAlignment(dto.Alignment, mode, issues);
+        var autoFitMode = ParseAutoFitMode(dto.AutoFitMode, mode, issues);
+        var gridSpec = ResolveGridSpec(dto.GridColumns, dto.GridRows, mode, issues);
 
         return new LayoutOptions
         {
@@ -173,6 +177,11 @@ internal static class ProjectMapper
             BorderEnabled = dto.DrawBorder,
             BorderThickness = borderThickness,
             MirrorBackside = dto.MirrorBackside,
+            DuplexMode = duplexMode,
+            Alignment = alignment,
+            AutoFitMode = autoFitMode,
+            Grid = gridSpec,
+            PreferSquareCards = dto.PreferSquareCards,
             Bleed = bleed,
             CutMarks = dto.DrawCutMarks,
         };
@@ -433,11 +442,108 @@ internal static class ProjectMapper
             },
             CornerRadiusMm = layout.CornerRadius.Value,
             MirrorBackside = layout.MirrorBackside,
+            DuplexMode = layout.DuplexMode.ToString(),
+            Alignment = layout.Alignment.ToString(),
+            AutoFitMode = layout.AutoFitMode.ToString(),
+            GridColumns = layout.Grid?.Columns,
+            GridRows = layout.Grid?.Rows,
+            PreferSquareCards = layout.PreferSquareCards,
             DrawBorder = layout.BorderEnabled,
             BorderThicknessMm = layout.BorderThickness.Value,
             BleedMm = layout.Bleed.Value,
             DrawCutMarks = layout.CutMarks,
         };
+    }
+
+    private static DuplexMode ParseDuplexMode(string? value, MappingMode mode, ICollection<MappingIssue> issues)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<DuplexMode>(value, true, out var duplexMode))
+        {
+            return duplexMode;
+        }
+
+        if (mode == MappingMode.Lenient)
+        {
+            issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, "DuplexMode is missing or invalid; using default.", nameof(LayoutOptions.DuplexMode)));
+        }
+        else if (!string.IsNullOrWhiteSpace(value))
+        {
+            issues.Add(MappingIssue.Error(MappingIssueCode.UnknownEnum, "DuplexMode is invalid.", nameof(LayoutOptions.DuplexMode)));
+        }
+
+        return EngineDefaults.DefaultDuplexMode;
+    }
+
+    private static GridAlignment ParseGridAlignment(string? value, MappingMode mode, ICollection<MappingIssue> issues)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<GridAlignment>(value, true, out var alignment))
+        {
+            return alignment;
+        }
+
+        if (mode == MappingMode.Lenient)
+        {
+            issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, "Alignment is missing or invalid; using default.", nameof(LayoutOptions.Alignment)));
+        }
+        else if (!string.IsNullOrWhiteSpace(value))
+        {
+            issues.Add(MappingIssue.Error(MappingIssueCode.UnknownEnum, "Alignment is invalid.", nameof(LayoutOptions.Alignment)));
+        }
+
+        return EngineDefaults.DefaultGridAlignment;
+    }
+
+    private static AutoFitMode ParseAutoFitMode(string? value, MappingMode mode, ICollection<MappingIssue> issues)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<AutoFitMode>(value, true, out var autoFitMode))
+        {
+            return autoFitMode;
+        }
+
+        if (mode == MappingMode.Lenient)
+        {
+            issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, "AutoFitMode is missing or invalid; using default.", nameof(LayoutOptions.AutoFitMode)));
+        }
+        else if (!string.IsNullOrWhiteSpace(value))
+        {
+            issues.Add(MappingIssue.Error(MappingIssueCode.UnknownEnum, "AutoFitMode is invalid.", nameof(LayoutOptions.AutoFitMode)));
+        }
+
+        return EngineDefaults.DefaultAutoFitMode;
+    }
+
+    private static GridSpec? ResolveGridSpec(int? columns, int? rows, MappingMode mode, ICollection<MappingIssue> issues)
+    {
+        if (columns is null && rows is null)
+        {
+            return null;
+        }
+
+        if (columns is null || rows is null)
+        {
+            if (mode == MappingMode.Lenient)
+            {
+                issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, "Grid specification is incomplete; ignoring.", nameof(LayoutOptions.Grid)));
+                return null;
+            }
+
+            issues.Add(MappingIssue.Error(MappingIssueCode.MissingValue, "GridColumns and GridRows must both be provided.", nameof(LayoutOptions.Grid)));
+            return null;
+        }
+
+        if (columns <= 0 || rows <= 0)
+        {
+            if (mode == MappingMode.Lenient)
+            {
+                issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, "Grid specification is invalid; ignoring.", nameof(LayoutOptions.Grid)));
+                return null;
+            }
+
+            issues.Add(MappingIssue.Error(MappingIssueCode.InvalidValue, "GridColumns and GridRows must be positive.", nameof(LayoutOptions.Grid)));
+            return null;
+        }
+
+        return new GridSpec(columns.Value, rows.Value);
     }
 
     private static bool HasErrors(IEnumerable<MappingIssue> issues) => issues.Any(issue => issue.Severity == MappingIssueSeverity.Error);
