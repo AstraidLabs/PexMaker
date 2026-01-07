@@ -54,6 +54,18 @@ public sealed partial class PexMakerEngine
         var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), project.Dpi);
         var borderPx = Units.MmToPx(project.Layout.BorderThickness, project.Dpi);
         var cornerPx = Units.MmToPx(project.Layout.CornerRadius, project.Dpi);
+        var cutMarkLengthMm = project.Layout.CutMarks
+            ? NormalizeCutMarkMeasurement(project.Layout.CutMarkLength, EngineDefaults.DefaultCutMarkLength)
+            : Mm.Zero;
+        var cutMarkThicknessMm = project.Layout.CutMarks
+            ? NormalizeCutMarkMeasurement(project.Layout.CutMarkThickness, EngineDefaults.DefaultCutMarkThickness)
+            : Mm.Zero;
+        var cutMarkOffsetMm = project.Layout.CutMarks
+            ? NormalizeCutMarkMeasurement(project.Layout.CutMarkOffset, EngineDefaults.DefaultCutMarkOffset)
+            : Mm.Zero;
+        var cutMarkLengthPx = Units.MmToPx(cutMarkLengthMm, project.Dpi);
+        var cutMarkThicknessPx = Units.MmToPx(cutMarkThicknessMm, project.Dpi);
+        var cutMarkOffsetPx = Units.MmToPx(cutMarkOffsetMm, project.Dpi);
 
         _fileSystem.CreateDirectory(request.OutputDirectory);
 
@@ -69,6 +81,9 @@ public sealed partial class PexMakerEngine
             IncludeFront = request.IncludeFront,
             IncludeBack = request.IncludeBack,
             IncludeCutMarks = project.Layout.CutMarks,
+            CutMarkLengthPx = cutMarkLengthPx,
+            CutMarkThicknessPx = cutMarkThicknessPx,
+            CutMarkOffsetPx = cutMarkOffsetPx,
             BorderEnabled = project.Layout.BorderEnabled,
             BorderThicknessPx = borderPx,
             CornerRadiusPx = cornerPx,
@@ -87,6 +102,11 @@ public sealed partial class PexMakerEngine
         var combinedErrors = exportResult.ValidationResult.Errors;
         var combinedResult = new ProjectValidationResult(combinedErrors, combinedWarnings);
         return new ExportResult(exportResult.IsSuccess, exportResult.Files, combinedResult);
+    }
+
+    private static Mm NormalizeCutMarkMeasurement(Mm value, Mm fallback)
+    {
+        return value.Value > 0 ? value : fallback;
     }
 
     private static (ExportImageFormat Format, ValidationError? Error) ResolveFormat(string? format)

@@ -54,6 +54,12 @@ public sealed class SheetExportRequest
 
     public bool IncludeCutMarks { get; init; }
 
+    public double CutMarkLengthPx { get; init; }
+
+    public double CutMarkThicknessPx { get; init; }
+
+    public double CutMarkOffsetPx { get; init; }
+
     public bool BorderEnabled { get; init; }
 
     public double BorderThicknessPx { get; init; }
