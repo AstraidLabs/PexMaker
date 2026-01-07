@@ -157,9 +157,9 @@ internal static class ProjectMapper
         var cornerRadius = ResolveMeasurement(dto.CornerRadiusMm, EngineDefaults.DefaultCornerRadius, nameof(LayoutOptions.CornerRadius), mode, issues, allowZero: true);
         var borderThickness = ResolveMeasurement(dto.BorderThicknessMm, EngineDefaults.DefaultBorderThickness, nameof(LayoutOptions.BorderThickness), mode, issues, allowZero: true);
         var bleed = ResolveMeasurement(dto.BleedMm, Mm.Zero, nameof(LayoutOptions.Bleed), mode, issues, allowZero: true);
-        var cutMarkLength = ResolveMeasurement(dto.CutMarkLengthMm, EngineDefaults.DefaultCutMarkLength, nameof(LayoutOptions.CutMarkLength), mode, issues, allowZero: true);
-        var cutMarkThickness = ResolveMeasurement(dto.CutMarkThicknessMm, EngineDefaults.DefaultCutMarkThickness, nameof(LayoutOptions.CutMarkThickness), mode, issues, allowZero: true);
-        var cutMarkOffset = ResolveMeasurement(dto.CutMarkOffsetMm, EngineDefaults.DefaultCutMarkOffset, nameof(LayoutOptions.CutMarkOffset), mode, issues, allowZero: true);
+        var cutMarkLength = ResolveOptionalMeasurement(dto.CutMarkLengthMm, EngineDefaults.DefaultCutMarkLength, nameof(LayoutOptions.CutMarkLength), mode, issues, allowZero: true);
+        var cutMarkThickness = ResolveOptionalMeasurement(dto.CutMarkThicknessMm, EngineDefaults.DefaultCutMarkThickness, nameof(LayoutOptions.CutMarkThickness), mode, issues, allowZero: true);
+        var cutMarkOffset = ResolveOptionalMeasurement(dto.CutMarkOffsetMm, EngineDefaults.DefaultCutMarkOffset, nameof(LayoutOptions.CutMarkOffset), mode, issues, allowZero: true);
         var duplexMode = ParseDuplexMode(dto.DuplexMode, mode, issues);
         var alignment = ParseGridAlignment(dto.Alignment, mode, issues);
         var autoFitMode = ParseAutoFitMode(dto.AutoFitMode, mode, issues);
@@ -272,6 +272,21 @@ internal static class ProjectMapper
 
         issues.Add(MappingIssue.Error(MappingIssueCode.InvalidValue, $"{path} is invalid.", path));
         return fallback;
+    }
+
+    private static Mm ResolveOptionalMeasurement(double? value, Mm fallback, string path, MappingMode mode, ICollection<MappingIssue> issues, bool allowZero = true, bool mustBePositive = false)
+    {
+        if (value is null)
+        {
+            if (mode == MappingMode.Lenient)
+            {
+                issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, $"{path} is missing; using default {fallback.Value}mm.", path));
+            }
+
+            return fallback;
+        }
+
+        return ResolveMeasurement(value.Value, fallback, path, mode, issues, allowZero, mustBePositive);
     }
 
     private static List<ImageRef> MapFrontImages(List<ImageRefDto>? dtos, MappingMode mode, ICollection<MappingIssue> issues, int pairCount)
