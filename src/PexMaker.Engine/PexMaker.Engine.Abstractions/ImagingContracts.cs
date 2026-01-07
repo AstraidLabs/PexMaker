@@ -70,6 +70,8 @@ public sealed class SheetExportRequest
 
     public int CardHeightPx { get; init; }
 
+    public int BleedPx { get; init; }
+
     public bool EnableParallelism { get; init; }
 
     public int MaxDegreeOfParallelism { get; init; }
