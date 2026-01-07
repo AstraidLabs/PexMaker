@@ -1,6 +1,7 @@
 using System.Linq;
 using PexMaker.Engine.Abstractions;
 using PexMaker.Engine.Domain;
+using PexMaker.Engine.Domain.Units;
 
 namespace PexMaker.Engine.Application;
 
@@ -52,11 +53,12 @@ public sealed partial class PexMakerEngine
             return new ExportResult(false, Array.Empty<string>(), exportValidation);
         }
 
-        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), normalizedProject.Dpi);
-        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), normalizedProject.Dpi);
-        var borderPx = Units.MmToPx(normalizedProject.Layout.BorderThickness, normalizedProject.Dpi);
-        var cornerPx = Units.MmToPx(normalizedProject.Layout.CornerRadius, normalizedProject.Dpi);
-        var bleedPx = Units.MmToPx(normalizedProject.Layout.Bleed, normalizedProject.Dpi);
+        var resolution = ResolutionDpi.Create(normalizedProject.Dpi.Value);
+        var cardWidthPx = UnitConverter.ToPixels((decimal)metrics.CardWidthMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var cardHeightPx = UnitConverter.ToPixels((decimal)metrics.CardHeightMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var borderPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.BorderThickness.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var cornerPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.CornerRadius.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var bleedPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.Bleed.Value, Unit.Millimeter, resolution, PxRounding.Round);
         var cutMarkLengthMm = normalizedProject.Layout.CutMarks
             ? NormalizeCutMarkMeasurement(normalizedProject.Layout.CutMarkLength, EngineDefaults.DefaultCutMarkLength)
             : Mm.Zero;
@@ -66,9 +68,9 @@ public sealed partial class PexMakerEngine
         var cutMarkOffsetMm = normalizedProject.Layout.CutMarks
             ? NormalizeCutMarkMeasurement(normalizedProject.Layout.CutMarkOffset, EngineDefaults.DefaultCutMarkOffset)
             : Mm.Zero;
-        var cutMarkLengthPx = Units.MmToPx(cutMarkLengthMm, normalizedProject.Dpi);
-        var cutMarkThicknessPx = Units.MmToPx(cutMarkThicknessMm, normalizedProject.Dpi);
-        var cutMarkOffsetPx = Units.MmToPx(cutMarkOffsetMm, normalizedProject.Dpi);
+        var cutMarkLengthPx = UnitConverter.ToPixels((decimal)cutMarkLengthMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var cutMarkThicknessPx = UnitConverter.ToPixels((decimal)cutMarkThicknessMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var cutMarkOffsetPx = UnitConverter.ToPixels((decimal)cutMarkOffsetMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
 
         var exportRequest = new SheetExportRequest
         {

@@ -1,4 +1,5 @@
 using PexMaker.Engine.Domain;
+using PexMaker.Engine.Domain.Units;
 
 namespace PexMaker.Engine.Application;
 
@@ -44,8 +45,9 @@ public sealed partial class PexMakerEngine
     private LayoutPlan BuildLayoutPlan(PexProject project, Deck deck, LayoutMetrics metrics)
     {
         var layout = project.Layout;
-        var pageWidthPx = Units.MmToPx(new Mm(metrics.PageWidthMm), project.Dpi);
-        var pageHeightPx = Units.MmToPx(new Mm(metrics.PageHeightMm), project.Dpi);
+        var resolution = ResolutionDpi.Create(project.Dpi.Value);
+        var pageWidthPx = UnitConverter.ToPixels((decimal)metrics.PageWidthMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var pageHeightPx = UnitConverter.ToPixels((decimal)metrics.PageHeightMm, Unit.Millimeter, resolution, PxRounding.Round);
 
         var grid = new LayoutGrid(metrics.Columns, metrics.Rows, metrics.PerPage);
         if (grid.PerPage < 1 || metrics.CardWidthMm <= 0 || metrics.CardHeightMm <= 0)
@@ -54,8 +56,8 @@ public sealed partial class PexMakerEngine
         }
 
         var pages = new List<LayoutPage>();
-        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), project.Dpi);
-        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), project.Dpi);
+        var cardWidthPx = UnitConverter.ToPixels((decimal)metrics.CardWidthMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var cardHeightPx = UnitConverter.ToPixels((decimal)metrics.CardHeightMm, Unit.Millimeter, resolution, PxRounding.Round);
         var perPage = grid.PerPage;
         var totalPages = (int)Math.Ceiling(deck.CardCount / (double)perPage);
         var normalizedDuplex = NormalizeDuplex(layout);
@@ -78,16 +80,16 @@ public sealed partial class PexMakerEngine
 
                 var xMm = metrics.OriginXmm + col * (metrics.CardWidthMm + layout.Gutter.Value);
                 var yMm = metrics.OriginYmm + row * (metrics.CardHeightMm + layout.Gutter.Value);
-                var xPx = Units.MmToPx(new Mm(xMm), project.Dpi);
-                var yPx = Units.MmToPx(new Mm(yMm), project.Dpi);
+                var xPx = UnitConverter.ToPixels((decimal)xMm, Unit.Millimeter, resolution, PxRounding.Round);
+                var yPx = UnitConverter.ToPixels((decimal)yMm, Unit.Millimeter, resolution, PxRounding.Round);
 
                 frontPlacements.Add(new CardPlacementPlan(deckIndex, row, col, xPx, yPx, cardWidthPx, cardHeightPx));
 
                 var (backRow, backCol) = LayoutMath.MapDuplex(row, col, grid.Rows, grid.Columns, normalizedDuplex);
                 var backXMm = metrics.OriginXmm + backCol * (metrics.CardWidthMm + layout.Gutter.Value);
                 var backYMm = metrics.OriginYmm + backRow * (metrics.CardHeightMm + layout.Gutter.Value);
-                var backXPx = Units.MmToPx(new Mm(backXMm), project.Dpi);
-                var backYPx = Units.MmToPx(new Mm(backYMm), project.Dpi);
+                var backXPx = UnitConverter.ToPixels((decimal)backXMm, Unit.Millimeter, resolution, PxRounding.Round);
+                var backYPx = UnitConverter.ToPixels((decimal)backYMm, Unit.Millimeter, resolution, PxRounding.Round);
                 backPlacements.Add(new CardPlacementPlan(deckIndex, backRow, backCol, backXPx, backYPx, cardWidthPx, cardHeightPx));
             }
 

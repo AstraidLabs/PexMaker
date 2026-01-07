@@ -2,6 +2,7 @@ using FluentAssertions;
 using PexMaker.Engine.Abstractions;
 using PexMaker.Engine.Application;
 using PexMaker.Engine.Domain;
+using PexMaker.Engine.Domain.Units;
 using PexMaker.Engine.Infrastructure;
 using SkiaSharp;
 
@@ -109,11 +110,12 @@ public class EngineTests
     [Fact]
     public void Units_convert_mm_to_px_and_back()
     {
-        var pixels = Units.MmToPx(new Mm(25.4), new Dpi(300));
+        var resolution = ResolutionDpi.Create(300);
+        var pixels = UnitConverter.ToPixels(25.4m, Unit.Millimeter, resolution, PxRounding.Round);
         pixels.Should().Be(300);
 
-        var mm = Units.PxToMm(pixels, new Dpi(300));
-        mm.Should().BeApproximately(25.4, 0.1);
+        var mm = UnitConverter.FromPixels(pixels, Unit.Millimeter, resolution);
+        ((double)mm).Should().BeApproximately(25.4, 0.1);
     }
 
     [Fact]
