@@ -4,25 +4,24 @@ namespace PexMaker.Engine.Application;
 
 public sealed partial class PexMakerEngine
 {
-    public async Task<LayoutPlan> ComputeLayoutAsync(PexProject project, CancellationToken cancellationToken)
+    /// <summary>
+    /// Computes a layout plan after validating and normalizing project inputs.
+    /// </summary>
+    public Task<EngineOperationResult<LayoutPlan>> ComputeLayoutAsync(PexProject project, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var validation = await ValidateAsync(project, cancellationToken).ConfigureAwait(false);
+        var validation = ValidateProject(project, out var normalizedProject);
         if (!validation.IsValid)
         {
-            throw new InvalidOperationException("Project is not valid. Call ValidateAsync before computing layout.");
+            return Task.FromResult(new EngineOperationResult<LayoutPlan>(null, validation));
         }
 
-        if (project.BackImage is null)
-        {
-            throw new InvalidOperationException("Back image is required.");
-        }
-
-        var deck = BuildSequentialDeck(project);
-        var metrics = LayoutCalculator.Calculate(project.Layout);
-        return BuildLayoutPlan(project, deck, metrics);
+        var deck = BuildSequentialDeck(normalizedProject);
+        var metrics = LayoutCalculator.Calculate(normalizedProject.Layout);
+        var plan = BuildLayoutPlan(normalizedProject, deck, metrics);
+        return Task.FromResult(new EngineOperationResult<LayoutPlan>(plan, validation));
     }
 
     private static Deck BuildSequentialDeck(PexProject project)

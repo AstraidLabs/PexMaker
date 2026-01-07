@@ -13,19 +13,33 @@ public class EngineTests
     public async Task Deck_is_deterministic_and_contains_pairs()
     {
         var engine = PexMakerEngineFactory.CreateDefault();
-        var project = CreateProject(pairCount: 3);
+        var (project, tempRoot) = CreateProject(pairCount: 3);
 
-        var deck1 = await engine.BuildDeckAsync(project, seed: 42, CancellationToken.None);
-        var deck2 = await engine.BuildDeckAsync(project, seed: 42, CancellationToken.None);
+        try
+        {
+            var deck1Result = await engine.BuildDeckAsync(project, seed: 42, CancellationToken.None);
+            var deck2Result = await engine.BuildDeckAsync(project, seed: 42, CancellationToken.None);
+            deck1Result.IsSuccess.Should().BeTrue();
+            deck2Result.IsSuccess.Should().BeTrue();
+            var deck1 = deck1Result.Value!;
+            var deck2 = deck2Result.Value!;
 
-        deck1.Cards.Should().Equal(deck2.Cards);
-        deck1.Cards.GroupBy(c => c.Path).All(g => g.Count() == 2).Should().BeTrue();
+            deck1.Cards.Should().Equal(deck2.Cards);
+            deck1.Cards.GroupBy(c => c.Path).All(g => g.Count() == 2).Should().BeTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     [Fact]
     public async Task Layout_grid_matches_expected_dimensions()
     {
-        var project = CreateProject(pairCount: 4, configure: p =>
+        var (project, tempRoot) = CreateProject(pairCount: 4, configure: p =>
         {
             p.Layout = p.Layout with
             {
@@ -39,20 +53,32 @@ public class EngineTests
             };
         });
 
-        var engine = PexMakerEngineFactory.CreateDefault();
-        var validation = await engine.ValidateAsync(project, CancellationToken.None);
-        validation.IsValid.Should().BeTrue();
+        try
+        {
+            var engine = PexMakerEngineFactory.CreateDefault();
+            var validation = await engine.ValidateAsync(project, CancellationToken.None);
+            validation.IsValid.Should().BeTrue();
 
-        var layout = await engine.ComputeLayoutAsync(project, CancellationToken.None);
-        layout.Grid.Columns.Should().Be(3);
-        layout.Grid.Rows.Should().Be(3);
-        layout.Grid.PerPage.Should().Be(9);
+            var layoutResult = await engine.ComputeLayoutAsync(project, CancellationToken.None);
+            layoutResult.IsSuccess.Should().BeTrue();
+            var layout = layoutResult.Value!;
+            layout.Grid.Columns.Should().Be(3);
+            layout.Grid.Rows.Should().Be(3);
+            layout.Grid.PerPage.Should().Be(9);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     [Fact]
     public async Task Invalid_layout_reports_errors()
     {
-        var project = CreateProject(pairCount: 1, configure: p =>
+        var (project, tempRoot) = CreateProject(pairCount: 1, configure: p =>
         {
             p.Layout = p.Layout with
             {
@@ -63,11 +89,21 @@ public class EngineTests
             };
         });
 
-        var engine = PexMakerEngineFactory.CreateDefault();
-        var validation = await engine.ValidateAsync(project, CancellationToken.None);
+        try
+        {
+            var engine = PexMakerEngineFactory.CreateDefault();
+            var validation = await engine.ValidateAsync(project, CancellationToken.None);
 
-        validation.IsValid.Should().BeFalse();
-        validation.Errors.Should().Contain(e => e.Code == EngineErrorCode.LayoutDoesNotFit);
+            validation.IsValid.Should().BeFalse();
+            validation.Errors.Should().Contain(e => e.Code == EngineErrorCode.LayoutDoesNotFit);
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
     }
 
     [Fact]
@@ -117,7 +153,7 @@ public class EngineTests
             var result = await engine.ExportAsync(project, new ExportRequest
             {
                 OutputDirectory = outputDir,
-                Format = ExportImageFormat.Png,
+                Format = "png",
             }, CancellationToken.None);
 
             result.Succeeded.Should().BeTrue();
@@ -149,17 +185,31 @@ public class EngineTests
         return path;
     }
 
-    private static PexProject CreateProject(int pairCount, Action<PexProject>? configure = null)
+    private static (PexProject Project, string TempRoot) CreateProject(int pairCount, Action<PexProject>? configure = null)
     {
+        var tempRoot = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempRoot);
+
+        var frontImages = new List<ImageRef>();
+        for (var i = 0; i < pairCount; i++)
+        {
+            var path = Path.Combine(tempRoot, $"front_{i}.png");
+            File.WriteAllBytes(path, Array.Empty<byte>());
+            frontImages.Add(new ImageRef { Path = path });
+        }
+
+        var backPath = Path.Combine(tempRoot, "back.png");
+        File.WriteAllBytes(backPath, Array.Empty<byte>());
+
         var project = new PexProject
         {
             PairCount = pairCount,
-            FrontImages = Enumerable.Range(0, pairCount).Select(i => new ImageRef { Path = $"front_{i}.png" }).ToList(),
-            BackImage = new ImageRef { Path = "back.png" },
+            FrontImages = frontImages,
+            BackImage = new ImageRef { Path = backPath },
             Dpi = new Dpi(300),
         };
 
         configure?.Invoke(project);
-        return project;
+        return (project, tempRoot);
     }
 }

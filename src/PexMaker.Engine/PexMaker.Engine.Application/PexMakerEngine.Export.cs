@@ -6,35 +6,33 @@ namespace PexMaker.Engine.Application;
 
 public sealed partial class PexMakerEngine
 {
+    /// <summary>
+    /// Exports the project after validating inputs and output paths. Existing output files cause validation errors.
+    /// </summary>
     public async Task<ExportResult> ExportAsync(PexProject project, ExportRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var validation = await ValidateAsync(project, cancellationToken).ConfigureAwait(false);
-        if (!validation.IsValid)
+        var projectValidation = ValidateProject(project, out var normalizedProject);
+        var requestValidation = ValidateExportRequest(request, out var normalizedRequest);
+        var combinedValidation = ProjectValidationResult.Combine(projectValidation, requestValidation);
+        if (!combinedValidation.IsValid)
         {
-            return new ExportResult(false, Array.Empty<string>(), validation);
+            return new ExportResult(false, Array.Empty<string>(), combinedValidation);
         }
 
-        var formatResult = ResolveFormat(request.Format);
-        if (formatResult.Error is not null)
-        {
-            var invalidResult = new ProjectValidationResult(new[] { formatResult.Error }, validation.Warnings);
-            return new ExportResult(false, Array.Empty<string>(), invalidResult);
-        }
-
-        var deck = await BuildDeckAsync(project, request.Seed, cancellationToken).ConfigureAwait(false);
-        var metrics = LayoutCalculator.Calculate(project.Layout);
-        var layout = BuildLayoutPlan(project, deck, metrics);
+        var deck = BuildShuffledDeck(normalizedProject, normalizedRequest.Seed);
+        var metrics = LayoutCalculator.Calculate(normalizedProject.Layout);
+        var layout = BuildLayoutPlan(normalizedProject, deck, metrics);
 
         var frontPages = (int)Math.Ceiling(deck.CardCount / (double)layout.Grid.PerPage);
-        var totalSheets = layout.Pages.Count(page => (page.Side == SheetSide.Front && request.IncludeFront)
-            || (page.Side == SheetSide.Back && request.IncludeBack));
+        var totalSheets = layout.Pages.Count(page => (page.Side == SheetSide.Front && normalizedRequest.IncludeFront)
+            || (page.Side == SheetSide.Back && normalizedRequest.IncludeBack));
 
         var safetyErrors = new List<ValidationError>();
-        if (request.IncludeFront && frontPages > EngineLimits.MaxPages)
+        if (normalizedRequest.IncludeFront && frontPages > EngineLimits.MaxPages)
         {
             safetyErrors.Add(new ValidationError(EngineErrorCode.ExceedsPageLimit, $"Page count {frontPages} exceeds limit {EngineLimits.MaxPages}", nameof(project.Layout)));
         }
@@ -44,65 +42,67 @@ public sealed partial class PexMakerEngine
             safetyErrors.Add(new ValidationError(EngineErrorCode.ExceedsOutputLimit, $"Output file count {totalSheets} exceeds limit {EngineLimits.MaxOutputFiles}", nameof(request.OutputDirectory)));
         }
 
-        if (safetyErrors.Count > 0)
+        var pathValidation = ValidateExportPaths(layout, normalizedRequest);
+        var exportValidation = safetyErrors.Count > 0
+            ? ProjectValidationResult.Combine(combinedValidation, new ProjectValidationResult(safetyErrors, null), pathValidation)
+            : ProjectValidationResult.Combine(combinedValidation, pathValidation);
+
+        if (!exportValidation.IsValid)
         {
-            var invalidResult = new ProjectValidationResult(validation.Errors.Concat(safetyErrors), validation.Warnings);
-            return new ExportResult(false, Array.Empty<string>(), invalidResult);
+            return new ExportResult(false, Array.Empty<string>(), exportValidation);
         }
 
-        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), project.Dpi);
-        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), project.Dpi);
-        var borderPx = Units.MmToPx(project.Layout.BorderThickness, project.Dpi);
-        var cornerPx = Units.MmToPx(project.Layout.CornerRadius, project.Dpi);
-        var bleedPx = Units.MmToPx(project.Layout.Bleed, project.Dpi);
-        var cutMarkLengthMm = project.Layout.CutMarks
-            ? NormalizeCutMarkMeasurement(project.Layout.CutMarkLength, EngineDefaults.DefaultCutMarkLength)
+        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), normalizedProject.Dpi);
+        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), normalizedProject.Dpi);
+        var borderPx = Units.MmToPx(normalizedProject.Layout.BorderThickness, normalizedProject.Dpi);
+        var cornerPx = Units.MmToPx(normalizedProject.Layout.CornerRadius, normalizedProject.Dpi);
+        var bleedPx = Units.MmToPx(normalizedProject.Layout.Bleed, normalizedProject.Dpi);
+        var cutMarkLengthMm = normalizedProject.Layout.CutMarks
+            ? NormalizeCutMarkMeasurement(normalizedProject.Layout.CutMarkLength, EngineDefaults.DefaultCutMarkLength)
             : Mm.Zero;
-        var cutMarkThicknessMm = project.Layout.CutMarks
-            ? NormalizeCutMarkMeasurement(project.Layout.CutMarkThickness, EngineDefaults.DefaultCutMarkThickness)
+        var cutMarkThicknessMm = normalizedProject.Layout.CutMarks
+            ? NormalizeCutMarkMeasurement(normalizedProject.Layout.CutMarkThickness, EngineDefaults.DefaultCutMarkThickness)
             : Mm.Zero;
-        var cutMarkOffsetMm = project.Layout.CutMarks
-            ? NormalizeCutMarkMeasurement(project.Layout.CutMarkOffset, EngineDefaults.DefaultCutMarkOffset)
+        var cutMarkOffsetMm = normalizedProject.Layout.CutMarks
+            ? NormalizeCutMarkMeasurement(normalizedProject.Layout.CutMarkOffset, EngineDefaults.DefaultCutMarkOffset)
             : Mm.Zero;
-        var cutMarkLengthPx = Units.MmToPx(cutMarkLengthMm, project.Dpi);
-        var cutMarkThicknessPx = Units.MmToPx(cutMarkThicknessMm, project.Dpi);
-        var cutMarkOffsetPx = Units.MmToPx(cutMarkOffsetMm, project.Dpi);
-
-        _fileSystem.CreateDirectory(request.OutputDirectory);
+        var cutMarkLengthPx = Units.MmToPx(cutMarkLengthMm, normalizedProject.Dpi);
+        var cutMarkThicknessPx = Units.MmToPx(cutMarkThicknessMm, normalizedProject.Dpi);
+        var cutMarkOffsetPx = Units.MmToPx(cutMarkOffsetMm, normalizedProject.Dpi);
 
         var exportRequest = new SheetExportRequest
         {
-            OutputDirectory = request.OutputDirectory,
-            NamingPrefixFront = request.NamingPrefixFront,
-            NamingPrefixBack = request.NamingPrefixBack,
-            Format = formatResult.Format,
+            OutputDirectory = normalizedRequest.OutputDirectory,
+            NamingPrefixFront = normalizedRequest.NamingPrefixFront,
+            NamingPrefixBack = normalizedRequest.NamingPrefixBack,
+            Format = ResolveFormat(normalizedRequest.Format),
             Layout = layout,
             Cards = deck.Cards,
             BackImage = deck.Back,
-            IncludeFront = request.IncludeFront,
-            IncludeBack = request.IncludeBack,
-            IncludeCutMarks = project.Layout.CutMarks,
+            IncludeFront = normalizedRequest.IncludeFront,
+            IncludeBack = normalizedRequest.IncludeBack,
+            IncludeCutMarks = normalizedProject.Layout.CutMarks,
             CutMarkLengthPx = cutMarkLengthPx,
             CutMarkThicknessPx = cutMarkThicknessPx,
             CutMarkOffsetPx = cutMarkOffsetPx,
-            BorderEnabled = project.Layout.BorderEnabled,
+            BorderEnabled = normalizedProject.Layout.BorderEnabled,
             BorderThicknessPx = borderPx,
             CornerRadiusPx = cornerPx,
             CardWidthPx = cardWidthPx,
             CardHeightPx = cardHeightPx,
             BleedPx = bleedPx,
-            EnableParallelism = request.EnableParallelism,
-            MaxDegreeOfParallelism = Math.Max(1, request.MaxDegreeOfParallelism),
-            MaxBufferedPages = Math.Max(1, request.MaxBufferedPages),
-            MaxBufferedCards = Math.Max(1, request.MaxBufferedCards),
-            MaxCacheItems = Math.Max(1, request.MaxCacheItems),
-            MaxEstimatedWorkingSetBytes = request.MaxEstimatedWorkingSetBytes,
-            Progress = request.Progress,
+            EnableParallelism = normalizedRequest.EnableParallelism,
+            MaxDegreeOfParallelism = Math.Max(1, normalizedRequest.MaxDegreeOfParallelism),
+            MaxBufferedPages = Math.Max(1, normalizedRequest.MaxBufferedPages),
+            MaxBufferedCards = Math.Max(1, normalizedRequest.MaxBufferedCards),
+            MaxCacheItems = Math.Max(1, normalizedRequest.MaxCacheItems),
+            MaxEstimatedWorkingSetBytes = normalizedRequest.MaxEstimatedWorkingSetBytes,
+            Progress = normalizedRequest.Progress,
         };
 
         var exportResult = await _sheetExporter.ExportAsync(exportRequest, cancellationToken).ConfigureAwait(false);
-        var combinedWarnings = validation.Warnings.Concat(exportResult.ValidationResult.Warnings).ToArray();
-        var combinedErrors = exportResult.ValidationResult.Errors;
+        var combinedWarnings = exportValidation.Warnings.Concat(exportResult.ValidationResult.Warnings).ToArray();
+        var combinedErrors = exportValidation.Errors.Concat(exportResult.ValidationResult.Errors).ToArray();
         var combinedResult = new ProjectValidationResult(combinedErrors, combinedWarnings);
         return new ExportResult(exportResult.IsSuccess, exportResult.Files, combinedResult);
     }
@@ -112,14 +112,8 @@ public sealed partial class PexMakerEngine
         return value.Value > 0 ? value : fallback;
     }
 
-    private static (ExportImageFormat Format, ValidationError? Error) ResolveFormat(string? format)
-    {
-        if (string.IsNullOrWhiteSpace(format) || string.Equals(format, "png", StringComparison.OrdinalIgnoreCase))
-        {
-            return (ExportImageFormat.Png, null);
-        }
-
-        var error = new ValidationError(EngineErrorCode.UnsupportedFormat, $"Format '{format}' is not supported. Only 'png' is allowed.", nameof(ExportRequest.Format));
-        return (ExportImageFormat.Png, error);
-    }
+    private static ExportImageFormat ResolveFormat(string? format)
+        => string.Equals(format, "png", StringComparison.OrdinalIgnoreCase)
+            ? ExportImageFormat.Png
+            : ExportImageFormat.Png;
 }
