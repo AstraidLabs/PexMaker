@@ -97,6 +97,7 @@ public sealed partial class PexMakerEngine
             MaxBufferedCards = Math.Max(1, request.MaxBufferedCards),
             MaxCacheItems = Math.Max(1, request.MaxCacheItems),
             MaxEstimatedWorkingSetBytes = request.MaxEstimatedWorkingSetBytes,
+            Progress = request.Progress,
         };
 
         var exportResult = await _sheetExporter.ExportAsync(exportRequest, cancellationToken).ConfigureAwait(false);

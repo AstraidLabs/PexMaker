@@ -1,3 +1,4 @@
+using System;
 using PexMaker.Engine.Domain;
 
 namespace PexMaker.Engine.Abstractions;
@@ -83,6 +84,8 @@ public sealed class SheetExportRequest
     public int MaxCacheItems { get; init; }
 
     public long MaxEstimatedWorkingSetBytes { get; init; }
+
+    public IProgress<EngineProgress>? Progress { get; init; }
 }
 
 public sealed record SheetExportResult(IReadOnlyList<string> Files, ProjectValidationResult ValidationResult)

@@ -31,6 +31,8 @@ public sealed class ExportRequest
     public string NamingPrefixBack { get; init; } = "back";
 
     public string Format { get; init; } = "png";
+
+    public IProgress<EngineProgress>? Progress { get; init; }
 }
 
 public sealed class ExportResult
