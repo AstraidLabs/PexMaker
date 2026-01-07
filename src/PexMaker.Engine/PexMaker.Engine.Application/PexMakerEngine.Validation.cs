@@ -38,6 +38,29 @@ public sealed partial class PexMakerEngine
 
         ValidateMeasurements(project, errors);
 
+        var layout = project.Layout ?? new LayoutOptions();
+        if (layout.Bleed.Value > 0)
+        {
+            if (layout.Bleed.Value * 2 > layout.Gutter.Value)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidMeasurement,
+                    "Bleed is larger than half the gutter, so card bleeds may overlap.",
+                    nameof(layout.Bleed)));
+            }
+
+            var minMargin = Math.Min(
+                Math.Min(layout.MarginLeft.Value, layout.MarginRight.Value),
+                Math.Min(layout.MarginTop.Value, layout.MarginBottom.Value));
+            if (layout.Bleed.Value > minMargin)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidMeasurement,
+                    "Bleed exceeds the configured margins and may be clipped at the page edge.",
+                    nameof(layout.Bleed)));
+            }
+        }
+
         var metrics = LayoutCalculator.Calculate(project.Layout);
         if (project.Layout.AutoFitMode != AutoFitMode.None && project.Layout.Grid is null)
         {

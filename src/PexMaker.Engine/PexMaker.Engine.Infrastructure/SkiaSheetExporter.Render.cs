@@ -60,12 +60,17 @@ internal sealed partial class SkiaSheetExporter
         using var surface = SKSurface.Create(info);
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
+        var bleedPx = Math.Max(0, request.BleedPx);
 
         for (var i = 0; i < placements.Count; i++)
         {
             var placement = placements[i];
             using var paint = new SKPaint { FilterQuality = SKFilterQuality.High, IsAntialias = true };
-            var destRect = SKRect.Create(placement.X, placement.Y, placement.Width, placement.Height);
+            var destRect = SKRect.Create(
+                placement.X - bleedPx,
+                placement.Y - bleedPx,
+                placement.Width + bleedPx * 2,
+                placement.Height + bleedPx * 2);
             canvas.DrawBitmap(renderedCards[i], destRect, paint);
         }
 
@@ -83,9 +88,12 @@ internal sealed partial class SkiaSheetExporter
 
     private SKBitmap GetRenderedCardBitmap(SheetExportRequest request, ExportCaches caches, ImageRef imageRef, CardPlacementPlan placement)
     {
+        var bleedPx = Math.Max(0, request.BleedPx);
+        var renderWidth = placement.Width + bleedPx * 2;
+        var renderHeight = placement.Height + bleedPx * 2;
         var options = new CardRenderOptions(
-            placement.Width,
-            placement.Height,
+            renderWidth,
+            renderHeight,
             imageRef.FitMode,
             MathEx.Clamp01(imageRef.AnchorX),
             MathEx.Clamp01(imageRef.AnchorY),
@@ -95,8 +103,8 @@ internal sealed partial class SkiaSheetExporter
 
         var key = new RenderCacheKey(
             imageRef.Path,
-            placement.Width,
-            placement.Height,
+            renderWidth,
+            renderHeight,
             imageRef.FitMode,
             options.AnchorX,
             options.AnchorY,
@@ -108,7 +116,7 @@ internal sealed partial class SkiaSheetExporter
         return caches.GetOrAddRenderedCard(key, () =>
         {
             var decoded = caches.GetOrAddDecoded(imageRef.Path, () => DecodeBitmap(imageRef.Path));
-            return RenderCardBitmap(decoded, options);
+            return RenderCardBitmap(decoded, options, placement.Width, placement.Height, bleedPx);
         });
     }
 
@@ -124,7 +132,7 @@ internal sealed partial class SkiaSheetExporter
         return bitmap;
     }
 
-    private static SKBitmap RenderCardBitmap(SKBitmap source, CardRenderOptions options)
+    private static SKBitmap RenderCardBitmap(SKBitmap source, CardRenderOptions options, int trimWidth, int trimHeight, int bleedPx)
     {
         var info = new SKImageInfo(options.TargetWidth, options.TargetHeight, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var surface = SKSurface.Create(info);
@@ -132,6 +140,7 @@ internal sealed partial class SkiaSheetExporter
         canvas.Clear(SKColors.White);
 
         using var path = new SKPath();
+        // Corner radius is applied to the full render size (trim + bleed).
         path.AddRoundRect(SKRect.Create(info.Width, info.Height), (float)options.CornerRadius, (float)options.CornerRadius);
         canvas.ClipPath(path, SKClipOperation.Intersect, true);
 
@@ -148,7 +157,11 @@ internal sealed partial class SkiaSheetExporter
             };
 
             var inset = (float)(options.BorderThickness / 2.0);
-            var rect = SKRect.Create(inset, inset, info.Width - (float)options.BorderThickness, info.Height - (float)options.BorderThickness);
+            var rect = SKRect.Create(
+                bleedPx + inset,
+                bleedPx + inset,
+                trimWidth - (float)options.BorderThickness,
+                trimHeight - (float)options.BorderThickness);
             canvas.DrawRoundRect(rect, (float)options.CornerRadius, (float)options.CornerRadius, paint);
         }
 

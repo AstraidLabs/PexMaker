@@ -80,7 +80,9 @@ internal sealed partial class SkiaSheetExporter
     private static long EstimateWorkingSetBytes(SheetExportRequest request, int maxBufferedPages, int maxBufferedCards)
     {
         var bytesPerPage = (long)request.Layout.PageWidthPx * request.Layout.PageHeightPx * 4;
-        var bytesPerCard = (long)request.CardWidthPx * request.CardHeightPx * 4;
+        var renderWidth = request.CardWidthPx + (request.BleedPx * 2);
+        var renderHeight = request.CardHeightPx + (request.BleedPx * 2);
+        var bytesPerCard = (long)renderWidth * renderHeight * 4;
         return (bytesPerPage * maxBufferedPages) + (bytesPerCard * maxBufferedCards);
     }
 

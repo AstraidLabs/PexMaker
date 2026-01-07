@@ -54,6 +54,7 @@ public sealed partial class PexMakerEngine
         var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), project.Dpi);
         var borderPx = Units.MmToPx(project.Layout.BorderThickness, project.Dpi);
         var cornerPx = Units.MmToPx(project.Layout.CornerRadius, project.Dpi);
+        var bleedPx = Units.MmToPx(project.Layout.Bleed, project.Dpi);
         var cutMarkLengthMm = project.Layout.CutMarks
             ? NormalizeCutMarkMeasurement(project.Layout.CutMarkLength, EngineDefaults.DefaultCutMarkLength)
             : Mm.Zero;
@@ -89,6 +90,7 @@ public sealed partial class PexMakerEngine
             CornerRadiusPx = cornerPx,
             CardWidthPx = cardWidthPx,
             CardHeightPx = cardHeightPx,
+            BleedPx = bleedPx,
             EnableParallelism = request.EnableParallelism,
             MaxDegreeOfParallelism = Math.Max(1, request.MaxDegreeOfParallelism),
             MaxBufferedPages = Math.Max(1, request.MaxBufferedPages),
