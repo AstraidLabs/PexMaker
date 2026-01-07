@@ -33,6 +33,7 @@ internal sealed partial class SkiaSheetExporter
         using var caches = new ExportCaches(maxCacheItems);
         using var linkedSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var linkedToken = linkedSource.Token;
+        var totalPages = CountExportPages(request);
 
         var pageJobs = Channel.CreateBounded<PageJob>(new BoundedChannelOptions(maxBufferedPages)
         {
@@ -51,8 +52,8 @@ internal sealed partial class SkiaSheetExporter
         var files = new List<string>();
 
         var producerTask = ProducePageJobsAsync(request, pageJobs.Writer, linkedToken);
-        var rendererTask = RenderPagesAsync(request, pageJobs.Reader, encodedPages.Writer, caches, linkedToken);
-        var writerTask = WritePagesAsync(encodedPages.Reader, files, linkedToken);
+        var rendererTask = RenderPagesAsync(request, pageJobs.Reader, encodedPages.Writer, caches, totalPages, linkedToken);
+        var writerTask = WritePagesAsync(request, encodedPages.Reader, files, totalPages, linkedToken);
 
         try
         {
@@ -75,6 +76,12 @@ internal sealed partial class SkiaSheetExporter
             pageJobs.Writer.TryComplete();
             encodedPages.Writer.TryComplete();
         }
+    }
+
+    private static int CountExportPages(SheetExportRequest request)
+    {
+        return request.Layout.Pages.Count(page => (page.Side == SheetSide.Front && request.IncludeFront)
+            || (page.Side == SheetSide.Back && request.IncludeBack));
     }
 
     private static long EstimateWorkingSetBytes(SheetExportRequest request, int maxBufferedPages, int maxBufferedCards)
@@ -127,14 +134,21 @@ internal sealed partial class SkiaSheetExporter
         ChannelReader<PageJob> reader,
         ChannelWriter<EncodedPage> writer,
         ExportCaches caches,
+        int totalPages,
         CancellationToken cancellationToken)
     {
         try
         {
+            var renderedCount = 0;
             await foreach (var job in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
             {
                 var encoded = await RenderPageAsync(request, job, caches, cancellationToken).ConfigureAwait(false);
                 await writer.WriteAsync(encoded, cancellationToken).ConfigureAwait(false);
+                if (request.Progress is not null && totalPages > 0)
+                {
+                    renderedCount++;
+                    request.Progress.Report(new EngineProgress("RenderPage", renderedCount, totalPages));
+                }
             }
         }
         finally
@@ -143,8 +157,14 @@ internal sealed partial class SkiaSheetExporter
         }
     }
 
-    private async Task WritePagesAsync(ChannelReader<EncodedPage> reader, ICollection<string> files, CancellationToken cancellationToken)
+    private async Task WritePagesAsync(
+        SheetExportRequest request,
+        ChannelReader<EncodedPage> reader,
+        ICollection<string> files,
+        int totalPages,
+        CancellationToken cancellationToken)
     {
+        var writtenCount = 0;
         await foreach (var page in reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -158,6 +178,11 @@ internal sealed partial class SkiaSheetExporter
             await using var stream = _fileSystem.OpenWrite(page.OutputPath);
             await stream.WriteAsync(page.Bytes, cancellationToken).ConfigureAwait(false);
             files.Add(page.OutputPath);
+            if (request.Progress is not null && totalPages > 0)
+            {
+                writtenCount++;
+                request.Progress.Report(new EngineProgress("WritePage", writtenCount, totalPages));
+            }
         }
     }
 }
