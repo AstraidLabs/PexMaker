@@ -17,6 +17,9 @@ public static class EngineDefaults
     public static readonly Mm DefaultCardHeight = new(88);
     public static readonly Mm DefaultCornerRadius = new(2);
     public static readonly Mm DefaultBorderThickness = new(0.5);
+    public static readonly Mm DefaultCutMarkLength = new(3.0);
+    public static readonly Mm DefaultCutMarkThickness = new(0.2);
+    public static readonly Mm DefaultCutMarkOffset = new(1.0);
 
     public const PageFormat DefaultPageFormat = PageFormat.A4;
     public const PageOrientation DefaultOrientation = PageOrientation.Portrait;

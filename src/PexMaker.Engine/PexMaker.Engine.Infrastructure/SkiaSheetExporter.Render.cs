@@ -69,6 +69,11 @@ internal sealed partial class SkiaSheetExporter
             canvas.DrawBitmap(renderedCards[i], destRect, paint);
         }
 
+        if (request.IncludeCutMarks)
+        {
+            DrawCutMarks(canvas, placements, request);
+        }
+
         using var snapshot = surface.Snapshot();
         using var data = snapshot.Encode(SKEncodedImageFormat.Png, 100);
         var bytes = data.ToArray();
@@ -174,5 +179,55 @@ internal sealed partial class SkiaSheetExporter
         };
 
         canvas.DrawBitmap(source, destRect, paint);
+    }
+
+    private static void DrawCutMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
+    {
+        if (request.CutMarkLengthPx <= 0 || request.CutMarkThicknessPx <= 0)
+        {
+            return;
+        }
+
+        var length = (float)request.CutMarkLengthPx;
+        var thickness = (float)request.CutMarkThicknessPx;
+        var offset = (float)Math.Max(0, request.CutMarkOffsetPx);
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Black,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = thickness,
+        };
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(0, 0, request.Layout.PageWidthPx, request.Layout.PageHeightPx), SKClipOperation.Intersect, true);
+
+        foreach (var placement in placements)
+        {
+            var left = placement.X;
+            var top = placement.Y;
+            var right = placement.X + placement.Width;
+            var bottom = placement.Y + placement.Height;
+
+            var leftX = left - offset;
+            var rightX = right + offset;
+            var topY = top - offset;
+            var bottomY = bottom + offset;
+
+            canvas.DrawLine(leftX - length, topY, leftX, topY, paint);
+            canvas.DrawLine(leftX, topY - length, leftX, topY, paint);
+
+            canvas.DrawLine(rightX, topY, rightX + length, topY, paint);
+            canvas.DrawLine(rightX, topY - length, rightX, topY, paint);
+
+            canvas.DrawLine(leftX - length, bottomY, leftX, bottomY, paint);
+            canvas.DrawLine(leftX, bottomY, leftX, bottomY + length, paint);
+
+            canvas.DrawLine(rightX, bottomY, rightX + length, bottomY, paint);
+            canvas.DrawLine(rightX, bottomY, rightX, bottomY + length, paint);
+        }
+
+        canvas.Restore();
     }
 }

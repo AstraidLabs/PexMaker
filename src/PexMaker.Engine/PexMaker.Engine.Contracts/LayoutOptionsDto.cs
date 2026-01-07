@@ -35,4 +35,10 @@ public sealed record LayoutOptionsDto
     public double BleedMm { get; init; }
 
     public bool DrawCutMarks { get; init; }
+
+    public double CutMarkLengthMm { get; init; }
+
+    public double CutMarkThicknessMm { get; init; }
+
+    public double CutMarkOffsetMm { get; init; }
 }

@@ -157,6 +157,9 @@ internal static class ProjectMapper
         var cornerRadius = ResolveMeasurement(dto.CornerRadiusMm, EngineDefaults.DefaultCornerRadius, nameof(LayoutOptions.CornerRadius), mode, issues, allowZero: true);
         var borderThickness = ResolveMeasurement(dto.BorderThicknessMm, EngineDefaults.DefaultBorderThickness, nameof(LayoutOptions.BorderThickness), mode, issues, allowZero: true);
         var bleed = ResolveMeasurement(dto.BleedMm, Mm.Zero, nameof(LayoutOptions.Bleed), mode, issues, allowZero: true);
+        var cutMarkLength = ResolveMeasurement(dto.CutMarkLengthMm, EngineDefaults.DefaultCutMarkLength, nameof(LayoutOptions.CutMarkLength), mode, issues, allowZero: true);
+        var cutMarkThickness = ResolveMeasurement(dto.CutMarkThicknessMm, EngineDefaults.DefaultCutMarkThickness, nameof(LayoutOptions.CutMarkThickness), mode, issues, allowZero: true);
+        var cutMarkOffset = ResolveMeasurement(dto.CutMarkOffsetMm, EngineDefaults.DefaultCutMarkOffset, nameof(LayoutOptions.CutMarkOffset), mode, issues, allowZero: true);
         var duplexMode = ParseDuplexMode(dto.DuplexMode, mode, issues);
         var alignment = ParseGridAlignment(dto.Alignment, mode, issues);
         var autoFitMode = ParseAutoFitMode(dto.AutoFitMode, mode, issues);
@@ -184,6 +187,9 @@ internal static class ProjectMapper
             PreferSquareCards = dto.PreferSquareCards,
             Bleed = bleed,
             CutMarks = dto.DrawCutMarks,
+            CutMarkLength = cutMarkLength,
+            CutMarkThickness = cutMarkThickness,
+            CutMarkOffset = cutMarkOffset,
         };
     }
 
@@ -452,6 +458,9 @@ internal static class ProjectMapper
             BorderThicknessMm = layout.BorderThickness.Value,
             BleedMm = layout.Bleed.Value,
             DrawCutMarks = layout.CutMarks,
+            CutMarkLengthMm = layout.CutMarkLength.Value,
+            CutMarkThicknessMm = layout.CutMarkThickness.Value,
+            CutMarkOffsetMm = layout.CutMarkOffset.Value,
         };
     }
 

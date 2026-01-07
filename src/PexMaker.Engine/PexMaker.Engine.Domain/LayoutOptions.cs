@@ -45,4 +45,10 @@ public sealed record LayoutOptions
     public Mm Bleed { get; init; } = Mm.Zero;
 
     public bool CutMarks { get; init; } = false;
+
+    public Mm CutMarkLength { get; init; } = EngineDefaults.DefaultCutMarkLength;
+
+    public Mm CutMarkThickness { get; init; } = EngineDefaults.DefaultCutMarkThickness;
+
+    public Mm CutMarkOffset { get; init; } = EngineDefaults.DefaultCutMarkOffset;
 }
