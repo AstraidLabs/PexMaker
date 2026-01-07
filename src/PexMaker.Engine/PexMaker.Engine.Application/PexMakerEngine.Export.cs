@@ -26,7 +26,8 @@ public sealed partial class PexMakerEngine
         }
 
         var deck = await BuildDeckAsync(project, request.Seed, cancellationToken).ConfigureAwait(false);
-        var layout = BuildLayoutPlan(project, deck);
+        var metrics = LayoutCalculator.Calculate(project.Layout);
+        var layout = BuildLayoutPlan(project, deck, metrics);
 
         var frontPages = (int)Math.Ceiling(deck.CardCount / (double)layout.Grid.PerPage);
         var totalSheets = layout.Pages.Count(page => (page.Side == SheetSide.Front && request.IncludeFront)
@@ -49,8 +50,8 @@ public sealed partial class PexMakerEngine
             return new ExportResult(false, Array.Empty<string>(), invalidResult);
         }
 
-        var cardWidthPx = Units.MmToPx(project.Layout.CardWidth, project.Dpi);
-        var cardHeightPx = Units.MmToPx(project.Layout.CardHeight, project.Dpi);
+        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), project.Dpi);
+        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), project.Dpi);
         var borderPx = Units.MmToPx(project.Layout.BorderThickness, project.Dpi);
         var cornerPx = Units.MmToPx(project.Layout.CornerRadius, project.Dpi);
 

@@ -16,6 +16,18 @@ public sealed record LayoutOptionsDto
 
     public bool MirrorBackside { get; init; }
 
+    public string? DuplexMode { get; init; }
+
+    public string? Alignment { get; init; }
+
+    public string? AutoFitMode { get; init; }
+
+    public int? GridColumns { get; init; }
+
+    public int? GridRows { get; init; }
+
+    public bool PreferSquareCards { get; init; }
+
     public bool DrawBorder { get; init; }
 
     public double BorderThicknessMm { get; init; }
