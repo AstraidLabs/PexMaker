@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using PexMaker.Engine.Abstractions;
 using PexMaker.Engine.Domain;
+using PexMaker.Engine.Domain.Units;
 
 namespace PexMaker.Engine.Application;
 
@@ -370,10 +371,11 @@ internal sealed class EngineInputValidator
         }
 
         var metrics = LayoutCalculator.Calculate(layout);
-        var pageWidthPx = Units.MmToPx(new Mm(metrics.PageWidthMm), dpi);
-        var pageHeightPx = Units.MmToPx(new Mm(metrics.PageHeightMm), dpi);
-        var cardWidthPx = Units.MmToPx(new Mm(metrics.CardWidthMm), dpi);
-        var cardHeightPx = Units.MmToPx(new Mm(metrics.CardHeightMm), dpi);
+        var resolution = new ResolutionDpi(dpi.Value);
+        var pageWidthPx = UnitConverter.ToPixels((decimal)metrics.PageWidthMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var pageHeightPx = UnitConverter.ToPixels((decimal)metrics.PageHeightMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var cardWidthPx = UnitConverter.ToPixels((decimal)metrics.CardWidthMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var cardHeightPx = UnitConverter.ToPixels((decimal)metrics.CardHeightMm, Unit.Millimeter, resolution, PxRounding.Round);
 
         if (pageWidthPx <= 0 || pageHeightPx <= 0)
         {
