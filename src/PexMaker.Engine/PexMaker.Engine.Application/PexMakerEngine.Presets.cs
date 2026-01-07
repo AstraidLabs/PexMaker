@@ -69,7 +69,16 @@ public sealed partial class PexMakerEngine
             pageWidthPx,
             pageHeightPx,
             cardWidthPx,
-            cardHeightPx);
+            cardHeightPx)
+        {
+            BleedMm = layout.Bleed.Value,
+            SafeAreaMm = layout.SafeArea.Value,
+            ShowSafeAreaOverlay = layout.ShowSafeAreaOverlay,
+            DuplexOffsetMmX = layout.DuplexOffsetX.Value,
+            DuplexOffsetMmY = layout.DuplexOffsetY.Value,
+            CutMarksEnabled = layout.CutMarks,
+            RegistrationMarksEnabled = layout.IncludeRegistrationMarks,
+        };
     }
 
     private static PexProject ApplyPreset(PexProject project, LayoutPreset preset)

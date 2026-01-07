@@ -48,6 +48,8 @@ public sealed partial class PexMakerEngine
         var resolution = ResolutionDpi.Create(project.Dpi.Value);
         var pageWidthPx = UnitConverter.ToPixels((decimal)metrics.PageWidthMm, Unit.Millimeter, resolution, PxRounding.Round);
         var pageHeightPx = UnitConverter.ToPixels((decimal)metrics.PageHeightMm, Unit.Millimeter, resolution, PxRounding.Round);
+        var duplexOffsetXPx = UnitConverter.ToPixels((decimal)layout.DuplexOffsetX.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var duplexOffsetYPx = UnitConverter.ToPixels((decimal)layout.DuplexOffsetY.Value, Unit.Millimeter, resolution, PxRounding.Round);
 
         var grid = new LayoutGrid(metrics.Columns, metrics.Rows, metrics.PerPage);
         if (grid.PerPage < 1 || metrics.CardWidthMm <= 0 || metrics.CardHeightMm <= 0)
@@ -90,7 +92,14 @@ public sealed partial class PexMakerEngine
                 var backYMm = metrics.OriginYmm + backRow * (metrics.CardHeightMm + layout.Gutter.Value);
                 var backXPx = UnitConverter.ToPixels((decimal)backXMm, Unit.Millimeter, resolution, PxRounding.Round);
                 var backYPx = UnitConverter.ToPixels((decimal)backYMm, Unit.Millimeter, resolution, PxRounding.Round);
-                backPlacements.Add(new CardPlacementPlan(deckIndex, backRow, backCol, backXPx, backYPx, cardWidthPx, cardHeightPx));
+                backPlacements.Add(new CardPlacementPlan(
+                    deckIndex,
+                    backRow,
+                    backCol,
+                    backXPx + duplexOffsetXPx,
+                    backYPx + duplexOffsetYPx,
+                    cardWidthPx,
+                    cardHeightPx));
             }
 
             pages.Add(new LayoutPage(pageIndex + 1, SheetSide.Front, frontPlacements));

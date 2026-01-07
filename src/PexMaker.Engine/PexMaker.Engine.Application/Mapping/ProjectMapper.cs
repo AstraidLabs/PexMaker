@@ -160,6 +160,13 @@ public static class ProjectMapper
         var cutMarkLength = ResolveOptionalMeasurement(dto.CutMarkLengthMm, EngineDefaults.DefaultCutMarkLength, nameof(LayoutOptions.CutMarkLength), mode, issues, allowZero: true);
         var cutMarkThickness = ResolveOptionalMeasurement(dto.CutMarkThicknessMm, EngineDefaults.DefaultCutMarkThickness, nameof(LayoutOptions.CutMarkThickness), mode, issues, allowZero: true);
         var cutMarkOffset = ResolveOptionalMeasurement(dto.CutMarkOffsetMm, EngineDefaults.DefaultCutMarkOffset, nameof(LayoutOptions.CutMarkOffset), mode, issues, allowZero: true);
+        var safeArea = ResolveMeasurement(dto.SafeAreaMm, Mm.Zero, nameof(LayoutOptions.SafeArea), mode, issues, allowZero: true);
+        var safeAreaOverlayThickness = ResolveOptionalMeasurement(dto.SafeAreaOverlayThicknessMm, EngineDefaults.DefaultSafeAreaOverlayThickness, nameof(LayoutOptions.SafeAreaOverlayThickness), mode, issues, allowZero: true);
+        var registrationMarkSize = ResolveOptionalMeasurement(dto.RegistrationMarkSizeMm, EngineDefaults.DefaultRegistrationMarkSize, nameof(LayoutOptions.RegistrationMarkSize), mode, issues, allowZero: true);
+        var registrationMarkThickness = ResolveOptionalMeasurement(dto.RegistrationMarkThicknessMm, EngineDefaults.DefaultRegistrationMarkThickness, nameof(LayoutOptions.RegistrationMarkThickness), mode, issues, allowZero: true);
+        var registrationMarkOffset = ResolveOptionalMeasurement(dto.RegistrationMarkOffsetMm, EngineDefaults.DefaultRegistrationMarkOffset, nameof(LayoutOptions.RegistrationMarkOffset), mode, issues, allowZero: true);
+        var duplexOffsetX = ResolveSignedMeasurement(dto.DuplexOffsetMmX, Mm.Zero, nameof(LayoutOptions.DuplexOffsetX), mode, issues);
+        var duplexOffsetY = ResolveSignedMeasurement(dto.DuplexOffsetMmY, Mm.Zero, nameof(LayoutOptions.DuplexOffsetY), mode, issues);
         var duplexMode = ParseDuplexMode(dto.DuplexMode, mode, issues);
         if (duplexMode == DuplexMode.None && dto.MirrorBackside && string.IsNullOrWhiteSpace(dto.DuplexMode))
         {
@@ -168,6 +175,7 @@ public static class ProjectMapper
         var alignment = ParseGridAlignment(dto.Alignment, mode, issues);
         var autoFitMode = ParseAutoFitMode(dto.AutoFitMode, mode, issues);
         var gridSpec = ResolveGridSpec(dto.GridColumns, dto.GridRows, mode, issues);
+        var registrationMarkPlacement = ParseRegistrationMarkPlacement(dto.RegistrationMarkPlacement, mode, issues);
 
         return new LayoutOptions
         {
@@ -190,9 +198,20 @@ public static class ProjectMapper
             PreferSquareCards = dto.PreferSquareCards,
             Bleed = bleed,
             CutMarks = dto.DrawCutMarks,
+            CutMarksPerCard = dto.CutMarksPerCard ?? EngineDefaults.DefaultCutMarksPerCard,
             CutMarkLength = cutMarkLength,
             CutMarkThickness = cutMarkThickness,
             CutMarkOffset = cutMarkOffset,
+            SafeArea = safeArea,
+            ShowSafeAreaOverlay = dto.ShowSafeAreaOverlay,
+            SafeAreaOverlayThickness = safeAreaOverlayThickness,
+            IncludeRegistrationMarks = dto.IncludeRegistrationMarks,
+            RegistrationMarkSize = registrationMarkSize,
+            RegistrationMarkThickness = registrationMarkThickness,
+            RegistrationMarkOffset = registrationMarkOffset,
+            RegistrationMarkPlacement = registrationMarkPlacement,
+            DuplexOffsetX = duplexOffsetX,
+            DuplexOffsetY = duplexOffsetY,
         };
     }
 
@@ -263,6 +282,25 @@ public static class ProjectMapper
         var valid = isFinite && inRange && (allowZero || value > 0) && positive;
 
         if (valid)
+        {
+            return Mm.From(value);
+        }
+
+        if (mode == MappingMode.Lenient)
+        {
+            issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, $"{path} is invalid; using default {fallback.Value}mm.", path));
+            return fallback;
+        }
+
+        issues.Add(MappingIssue.Error(MappingIssueCode.InvalidValue, $"{path} is invalid.", path));
+        return fallback;
+    }
+
+    private static Mm ResolveSignedMeasurement(double value, Mm fallback, string path, MappingMode mode, ICollection<MappingIssue> issues)
+    {
+        var isFinite = MathEx.IsFinite(value);
+        var inRange = value >= -EngineLimits.MaxMm && value <= EngineLimits.MaxMm;
+        if (isFinite && inRange)
         {
             return Mm.From(value);
         }
@@ -476,9 +514,20 @@ public static class ProjectMapper
             BorderThicknessMm = layout.BorderThickness.Value,
             BleedMm = layout.Bleed.Value,
             DrawCutMarks = layout.CutMarks,
+            CutMarksPerCard = layout.CutMarksPerCard,
             CutMarkLengthMm = layout.CutMarkLength.Value,
             CutMarkThicknessMm = layout.CutMarkThickness.Value,
             CutMarkOffsetMm = layout.CutMarkOffset.Value,
+            SafeAreaMm = layout.SafeArea.Value,
+            ShowSafeAreaOverlay = layout.ShowSafeAreaOverlay,
+            SafeAreaOverlayThicknessMm = layout.SafeAreaOverlayThickness.Value,
+            IncludeRegistrationMarks = layout.IncludeRegistrationMarks,
+            RegistrationMarkSizeMm = layout.RegistrationMarkSize.Value,
+            RegistrationMarkThicknessMm = layout.RegistrationMarkThickness.Value,
+            RegistrationMarkOffsetMm = layout.RegistrationMarkOffset.Value,
+            RegistrationMarkPlacement = layout.RegistrationMarkPlacement.ToString(),
+            DuplexOffsetMmX = layout.DuplexOffsetX.Value,
+            DuplexOffsetMmY = layout.DuplexOffsetY.Value,
         };
     }
 
@@ -518,6 +567,26 @@ public static class ProjectMapper
         }
 
         return EngineDefaults.DefaultGridAlignment;
+    }
+
+    private static RegistrationMarkPlacement ParseRegistrationMarkPlacement(string? value, MappingMode mode, ICollection<MappingIssue> issues)
+    {
+        if (!string.IsNullOrWhiteSpace(value)
+            && Enum.TryParse<RegistrationMarkPlacement>(value, true, out var placement))
+        {
+            return placement;
+        }
+
+        if (mode == MappingMode.Lenient)
+        {
+            issues.Add(MappingIssue.Warning(MappingIssueCode.DefaultApplied, "RegistrationMarkPlacement is missing or invalid; using default.", nameof(LayoutOptions.RegistrationMarkPlacement)));
+        }
+        else if (!string.IsNullOrWhiteSpace(value))
+        {
+            issues.Add(MappingIssue.Error(MappingIssueCode.UnknownEnum, "RegistrationMarkPlacement is invalid.", nameof(LayoutOptions.RegistrationMarkPlacement)));
+        }
+
+        return EngineDefaults.DefaultRegistrationMarkPlacement;
     }
 
     private static AutoFitMode ParseAutoFitMode(string? value, MappingMode mode, ICollection<MappingIssue> issues)

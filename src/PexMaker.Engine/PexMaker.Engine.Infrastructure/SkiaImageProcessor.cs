@@ -69,6 +69,20 @@ internal sealed class SkiaImageProcessor : IImageProcessor
             FilterQuality = SKFilterQuality.High,
         };
 
-        canvas.DrawBitmap(source, destRect, paint);
+        if (Math.Abs(options.RotationDegrees) > 0.01)
+        {
+            var centerX = options.TargetWidth / 2.0;
+            var centerY = options.TargetHeight / 2.0;
+            canvas.Save();
+            canvas.Translate((float)centerX, (float)centerY);
+            canvas.RotateDegrees((float)options.RotationDegrees);
+            canvas.Translate((float)-centerX, (float)-centerY);
+            canvas.DrawBitmap(source, destRect, paint);
+            canvas.Restore();
+        }
+        else
+        {
+            canvas.DrawBitmap(source, destRect, paint);
+        }
     }
 }

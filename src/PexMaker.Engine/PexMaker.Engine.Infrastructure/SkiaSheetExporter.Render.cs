@@ -1,3 +1,4 @@
+using System.Linq;
 using PexMaker.Engine.Abstractions;
 using PexMaker.Engine.Domain;
 using SkiaSharp;
@@ -79,6 +80,16 @@ internal sealed partial class SkiaSheetExporter
             DrawCutMarks(canvas, placements, request);
         }
 
+        if (request.ShowSafeAreaOverlay)
+        {
+            DrawSafeAreaOverlay(canvas, placements, request);
+        }
+
+        if (request.IncludeRegistrationMarks)
+        {
+            DrawRegistrationMarks(canvas, placements, request);
+        }
+
         using var snapshot = surface.Snapshot();
         using var data = snapshot.Encode(SKEncodedImageFormat.Png, 100);
         var bytes = data.ToArray();
@@ -97,6 +108,7 @@ internal sealed partial class SkiaSheetExporter
             imageRef.FitMode,
             MathEx.Clamp01(imageRef.AnchorX),
             MathEx.Clamp01(imageRef.AnchorY),
+            imageRef.RotationDegrees,
             request.BorderEnabled,
             request.BorderThicknessPx,
             request.CornerRadiusPx);
@@ -139,12 +151,7 @@ internal sealed partial class SkiaSheetExporter
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
 
-        using var path = new SKPath();
-        // Corner radius is applied to the full render size (trim + bleed).
-        path.AddRoundRect(SKRect.Create(info.Width, info.Height), (float)options.CornerRadius, (float)options.CornerRadius);
-        canvas.ClipPath(path, SKClipOperation.Intersect, true);
-
-        DrawImage(canvas, source, options);
+        DrawImage(canvas, source, options, trimWidth, trimHeight, bleedPx);
 
         if (options.BorderEnabled && options.BorderThickness > 0)
         {
@@ -169,7 +176,7 @@ internal sealed partial class SkiaSheetExporter
         return SKBitmap.FromImage(snapshot);
     }
 
-    private static void DrawImage(SKCanvas canvas, SKBitmap source, CardRenderOptions options)
+    private static void DrawImage(SKCanvas canvas, SKBitmap source, CardRenderOptions options, int trimWidth, int trimHeight, int bleedPx)
     {
         var scaleX = options.TargetWidth / (double)source.Width;
         var scaleY = options.TargetHeight / (double)source.Height;
@@ -191,7 +198,21 @@ internal sealed partial class SkiaSheetExporter
             FilterQuality = SKFilterQuality.High,
         };
 
-        canvas.DrawBitmap(source, destRect, paint);
+        if (Math.Abs(options.RotationDegrees) > 0.01)
+        {
+            var centerX = bleedPx + (trimWidth / 2.0);
+            var centerY = bleedPx + (trimHeight / 2.0);
+            canvas.Save();
+            canvas.Translate((float)centerX, (float)centerY);
+            canvas.RotateDegrees((float)options.RotationDegrees);
+            canvas.Translate((float)-centerX, (float)-centerY);
+            canvas.DrawBitmap(source, destRect, paint);
+            canvas.Restore();
+        }
+        else
+        {
+            canvas.DrawBitmap(source, destRect, paint);
+        }
     }
 
     private static void DrawCutMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
@@ -216,12 +237,21 @@ internal sealed partial class SkiaSheetExporter
         canvas.Save();
         canvas.ClipRect(new SKRect(0, 0, request.Layout.PageWidthPx, request.Layout.PageHeightPx), SKClipOperation.Intersect, true);
 
-        foreach (var placement in placements)
+        var targets = request.CutMarksPerCard
+            ? GetPlacementRects(placements)
+            : new[] { GetGridRect(placements) };
+
+        foreach (var rect in targets)
         {
-            var left = placement.X;
-            var top = placement.Y;
-            var right = placement.X + placement.Width;
-            var bottom = placement.Y + placement.Height;
+            if (rect.Width <= 0 || rect.Height <= 0)
+            {
+                continue;
+            }
+
+            var left = rect.Left;
+            var top = rect.Top;
+            var right = rect.Right;
+            var bottom = rect.Bottom;
 
             var leftX = left - offset;
             var rightX = right + offset;
@@ -242,5 +272,131 @@ internal sealed partial class SkiaSheetExporter
         }
 
         canvas.Restore();
+    }
+
+    private static void DrawSafeAreaOverlay(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
+    {
+        if (request.SafeAreaPx <= 0 || request.SafeAreaOverlayThicknessPx <= 0)
+        {
+            return;
+        }
+
+        using var paint = new SKPaint
+        {
+            Color = new SKColor(0, 0, 0, 120),
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = request.SafeAreaOverlayThicknessPx,
+        };
+
+        foreach (var placement in placements)
+        {
+            var rect = SKRect.Create(
+                placement.X + request.SafeAreaPx,
+                placement.Y + request.SafeAreaPx,
+                placement.Width - request.SafeAreaPx * 2,
+                placement.Height - request.SafeAreaPx * 2);
+
+            if (rect.Width <= 0 || rect.Height <= 0)
+            {
+                continue;
+            }
+
+            canvas.DrawRect(rect, paint);
+        }
+    }
+
+    private static void DrawRegistrationMarks(SKCanvas canvas, IReadOnlyList<CardPlacementPlan> placements, SheetExportRequest request)
+    {
+        if (request.RegistrationMarkSizePx <= 0 || request.RegistrationMarkThicknessPx <= 0)
+        {
+            return;
+        }
+
+        if (request.RegistrationMarkPlacement != RegistrationMarkPlacement.CornersOutsideGrid)
+        {
+            return;
+        }
+
+        var gridRect = GetGridRect(placements);
+        if (gridRect.Width <= 0 || gridRect.Height <= 0)
+        {
+            return;
+        }
+        var size = (float)request.RegistrationMarkSizePx;
+        var half = size / 2f;
+        var offset = (float)Math.Max(0, request.RegistrationMarkOffsetPx);
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Black,
+            IsAntialias = true,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = (float)request.RegistrationMarkThicknessPx,
+        };
+
+        var marks = new[]
+        {
+            new SKPoint(gridRect.Left - offset - half, gridRect.Top - offset - half),
+            new SKPoint(gridRect.Right + offset + half, gridRect.Bottom + offset + half),
+        };
+
+        foreach (var center in marks)
+        {
+            if (!TryClampMark(center, half, request, out var clamped))
+            {
+                continue;
+            }
+
+            var left = clamped.X - half;
+            var right = clamped.X + half;
+            var top = clamped.Y - half;
+            var bottom = clamped.Y + half;
+            var markRect = SKRect.Create(left, top, right - left, bottom - top);
+            if (markRect.IntersectsWith(gridRect))
+            {
+                continue;
+            }
+
+            canvas.DrawLine(left, clamped.Y, right, clamped.Y, paint);
+            canvas.DrawLine(clamped.X, top, clamped.X, bottom, paint);
+        }
+    }
+
+    private static bool TryClampMark(SKPoint center, float halfSize, SheetExportRequest request, out SKPoint clamped)
+    {
+        var minX = halfSize;
+        var minY = halfSize;
+        var maxX = request.Layout.PageWidthPx - halfSize;
+        var maxY = request.Layout.PageHeightPx - halfSize;
+
+        var x = Math.Clamp(center.X, minX, maxX);
+        var y = Math.Clamp(center.Y, minY, maxY);
+
+        clamped = new SKPoint(x, y);
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    }
+
+    private static IEnumerable<SKRect> GetPlacementRects(IReadOnlyList<CardPlacementPlan> placements)
+    {
+        foreach (var placement in placements)
+        {
+            yield return SKRect.Create(placement.X, placement.Y, placement.Width, placement.Height);
+        }
+    }
+
+    private static SKRect GetGridRect(IReadOnlyList<CardPlacementPlan> placements)
+    {
+        if (placements.Count == 0)
+        {
+            return SKRect.Empty;
+        }
+
+        var left = placements.Min(p => p.X);
+        var top = placements.Min(p => p.Y);
+        var right = placements.Max(p => p.X + p.Width);
+        var bottom = placements.Max(p => p.Y + p.Height);
+
+        return SKRect.Create(left, top, right - left, bottom - top);
     }
 }

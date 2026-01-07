@@ -26,7 +26,7 @@ public sealed record ImageRef
     public double AnchorY { get; init; } = 0.5;
 
     /// <summary>
-    /// Rotation in degrees.
+    /// Rotation in degrees clockwise around the card center.
     /// </summary>
     public double RotationDegrees { get; init; } = 0;
 }

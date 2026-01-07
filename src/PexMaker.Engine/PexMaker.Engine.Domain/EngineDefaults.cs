@@ -20,6 +20,10 @@ public static class EngineDefaults
     public static readonly Mm DefaultCutMarkLength = new(3.0);
     public static readonly Mm DefaultCutMarkThickness = new(0.2);
     public static readonly Mm DefaultCutMarkOffset = new(1.0);
+    public static readonly Mm DefaultSafeAreaOverlayThickness = new(0.2);
+    public static readonly Mm DefaultRegistrationMarkSize = new(5.0);
+    public static readonly Mm DefaultRegistrationMarkThickness = new(0.2);
+    public static readonly Mm DefaultRegistrationMarkOffset = new(3.0);
 
     public const PageFormat DefaultPageFormat = PageFormat.A4;
     public const PageOrientation DefaultOrientation = PageOrientation.Portrait;
@@ -27,4 +31,6 @@ public static class EngineDefaults
     public const AutoFitMode DefaultAutoFitMode = AutoFitMode.None;
     public const GridAlignment DefaultGridAlignment = GridAlignment.TopLeft;
     public const DuplexMode DefaultDuplexMode = DuplexMode.None;
+    public const bool DefaultCutMarksPerCard = true;
+    public const RegistrationMarkPlacement DefaultRegistrationMarkPlacement = RegistrationMarkPlacement.CornersOutsideGrid;
 }
