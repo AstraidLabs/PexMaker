@@ -6,6 +6,8 @@ internal sealed class FileSystem : IFileSystem
 {
     public bool FileExists(string path) => File.Exists(path);
 
+    public bool DirectoryExists(string path) => Directory.Exists(path);
+
     public void CreateDirectory(string path)
     {
         Directory.CreateDirectory(path);
@@ -15,5 +17,5 @@ internal sealed class FileSystem : IFileSystem
 
     public Stream OpenRead(string path) => File.OpenRead(path);
 
-    public Stream OpenWrite(string path) => File.Open(path, FileMode.Create, FileAccess.Write, FileShare.None);
+    public Stream OpenWrite(string path) => File.Open(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
 }

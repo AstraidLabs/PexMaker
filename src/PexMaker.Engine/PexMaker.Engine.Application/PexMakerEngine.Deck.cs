@@ -5,22 +5,26 @@ namespace PexMaker.Engine.Application;
 
 public sealed partial class PexMakerEngine
 {
-    public async Task<Deck> BuildDeckAsync(PexProject project, int? seed, CancellationToken cancellationToken)
+    /// <summary>
+    /// Builds a shuffled deck after validating and normalizing project inputs.
+    /// </summary>
+    public Task<EngineOperationResult<Deck>> BuildDeckAsync(PexProject project, int? seed, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(project);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var validation = await ValidateAsync(project, cancellationToken).ConfigureAwait(false);
+        var validation = ValidateProject(project, out var normalizedProject);
         if (!validation.IsValid)
         {
-            throw new InvalidOperationException("Project is not valid. Call ValidateAsync before building the deck.");
+            return Task.FromResult(new EngineOperationResult<Deck>(null, validation));
         }
 
-        if (project.BackImage is null)
-        {
-            throw new InvalidOperationException("Back image is required.");
-        }
+        var deck = BuildShuffledDeck(normalizedProject, seed);
+        return Task.FromResult(new EngineOperationResult<Deck>(deck, validation));
+    }
 
+    private Deck BuildShuffledDeck(PexProject project, int? seed)
+    {
         var cards = new List<ImageRef>(project.PairCount * 2);
         for (var i = 0; i < project.PairCount; i++)
         {
@@ -30,6 +34,11 @@ public sealed partial class PexMakerEngine
 
         var rng = _randomProvider.Create(seed);
         Shuffle(cards, rng);
+
+        if (project.BackImage is null)
+        {
+            throw new InvalidOperationException("Back image is required.");
+        }
 
         return new Deck(cards, project.BackImage);
     }
