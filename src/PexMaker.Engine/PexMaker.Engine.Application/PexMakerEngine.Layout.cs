@@ -102,12 +102,6 @@ public sealed partial class PexMakerEngine
 
     private static DuplexMode NormalizeDuplex(LayoutOptions layout)
     {
-        var duplexMode = layout.DuplexMode;
-        if (duplexMode == DuplexMode.None && layout.MirrorBackside)
-        {
-            duplexMode = DuplexMode.MirrorColumns;
-        }
-
-        return LayoutMath.NormalizeDuplexMode(duplexMode, layout.Orientation);
+        return LayoutMath.NormalizeDuplexMode(layout.DuplexMode, layout.Orientation);
     }
 }
