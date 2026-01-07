@@ -346,13 +346,69 @@ internal sealed class EngineInputValidator
             ValidateMeasurement(layout.CutMarkThickness, nameof(LayoutOptions.CutMarkThickness), errors, max: EngineLimits.MaxCutMarkThicknessMm);
             ValidateMeasurement(layout.CutMarkOffset, nameof(LayoutOptions.CutMarkOffset), errors, max: EngineLimits.MaxCutMarkOffsetMm);
 
-            if (layout.CutMarkLength.Value <= 0 || layout.CutMarkThickness.Value <= 0)
+            if (layout.CutMarkLength.Value < 0 || layout.CutMarkThickness.Value < 0 || layout.CutMarkOffset.Value < 0)
             {
                 errors.Add(new ValidationError(
                     EngineErrorCode.InvalidCutMarks,
-                    "Cut mark length and thickness must be positive.",
+                    "Cut mark length, thickness, and offset must be non-negative.",
                     nameof(LayoutOptions.CutMarks)));
             }
+            else if (layout.CutMarkLength.Value == 0 || layout.CutMarkThickness.Value == 0)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidCutMarks,
+                    "Cut marks are enabled but length or thickness is zero, so no marks will be drawn.",
+                    nameof(LayoutOptions.CutMarks),
+                    ValidationSeverity.Warning));
+            }
+        }
+
+        if (layout.ShowSafeAreaOverlay)
+        {
+            ValidateMeasurement(layout.SafeAreaOverlayThickness, nameof(LayoutOptions.SafeAreaOverlayThickness), errors);
+            if (layout.SafeAreaOverlayThickness.Value <= 0)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidSafeArea,
+                    "Safe area overlay thickness is zero; the overlay may not be visible.",
+                    nameof(LayoutOptions.SafeAreaOverlayThickness),
+                    ValidationSeverity.Warning));
+            }
+        }
+
+        if (layout.IncludeRegistrationMarks)
+        {
+            ValidateMeasurement(layout.RegistrationMarkSize, nameof(LayoutOptions.RegistrationMarkSize), errors, max: EngineLimits.MaxRegistrationMarkSizeMm);
+            ValidateMeasurement(layout.RegistrationMarkThickness, nameof(LayoutOptions.RegistrationMarkThickness), errors, max: EngineLimits.MaxRegistrationMarkThicknessMm);
+            ValidateMeasurement(layout.RegistrationMarkOffset, nameof(LayoutOptions.RegistrationMarkOffset), errors, max: EngineLimits.MaxRegistrationMarkOffsetMm);
+
+            if (layout.RegistrationMarkSize.Value < 0 || layout.RegistrationMarkThickness.Value < 0 || layout.RegistrationMarkOffset.Value < 0)
+            {
+                errors.Add(new ValidationError(
+                    EngineErrorCode.InvalidRegistrationMarks,
+                    "Registration mark size, thickness, and offset must be non-negative.",
+                    nameof(LayoutOptions.IncludeRegistrationMarks)));
+            }
+            else if (layout.RegistrationMarkSize.Value == 0 || layout.RegistrationMarkThickness.Value == 0)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidRegistrationMarks,
+                    "Registration marks are enabled but size or thickness is zero, so no marks will be drawn.",
+                    nameof(LayoutOptions.IncludeRegistrationMarks),
+                    ValidationSeverity.Warning));
+            }
+        }
+
+        ValidateSignedMeasurement(layout.DuplexOffsetX, nameof(LayoutOptions.DuplexOffsetX), errors);
+        ValidateSignedMeasurement(layout.DuplexOffsetY, nameof(LayoutOptions.DuplexOffsetY), errors);
+        if (Math.Abs(layout.DuplexOffsetX.Value) > EngineLimits.DuplexOffsetWarningMm
+            || Math.Abs(layout.DuplexOffsetY.Value) > EngineLimits.DuplexOffsetWarningMm)
+        {
+            warnings.Add(new ValidationError(
+                EngineErrorCode.InvalidDuplexOffset,
+                $"Duplex offset exceeds {EngineLimits.DuplexOffsetWarningMm}mm and may cause misalignment.",
+                nameof(LayoutOptions.DuplexOffsetX),
+                ValidationSeverity.Warning));
         }
 
         if (layout.AutoFitMode != AutoFitMode.None && layout.Grid is null)
@@ -433,6 +489,58 @@ internal sealed class EngineInputValidator
                     ValidationSeverity.Warning));
             }
         }
+
+        ValidateMeasurement(layout.SafeArea, nameof(LayoutOptions.SafeArea), errors);
+        if (layout.SafeArea.Value < 0)
+        {
+            errors.Add(new ValidationError(
+                EngineErrorCode.InvalidSafeArea,
+                "Safe area must be zero or positive.",
+                nameof(LayoutOptions.SafeArea)));
+        }
+
+        if (layout.SafeArea.Value > 0)
+        {
+            var maxSafeArea = Math.Min(metrics.CardWidthMm, metrics.CardHeightMm) / 2.0;
+            if (layout.SafeArea.Value > maxSafeArea)
+            {
+                errors.Add(new ValidationError(
+                    EngineErrorCode.InvalidSafeArea,
+                    $"Safe area must be less than or equal to half the card size ({maxSafeArea:0.###}mm).",
+                    nameof(LayoutOptions.SafeArea)));
+            }
+        }
+
+        if (layout.Bleed.Value > 0)
+        {
+            var maxCard = Math.Min(metrics.CardWidthMm, metrics.CardHeightMm);
+            if (layout.Bleed.Value > maxCard / 2.0)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidBleed,
+                    "Bleed is large relative to the card size and may consume most of the trim area.",
+                    nameof(LayoutOptions.Bleed),
+                    ValidationSeverity.Warning));
+            }
+        }
+
+        if (layout.IncludeRegistrationMarks)
+        {
+            var gridLeft = metrics.OriginXmm;
+            var gridTop = metrics.OriginYmm;
+            var gridRight = metrics.PageWidthMm - (metrics.OriginXmm + metrics.GridWidthMm);
+            var gridBottom = metrics.PageHeightMm - (metrics.OriginYmm + metrics.GridHeightMm);
+            var required = layout.RegistrationMarkOffset.Value + (layout.RegistrationMarkSize.Value / 2.0);
+
+            if (gridLeft < required || gridTop < required || gridRight < required || gridBottom < required)
+            {
+                warnings.Add(new ValidationError(
+                    EngineErrorCode.InvalidRegistrationMarks,
+                    "Registration marks may overlap the card grid or page edges due to limited margins.",
+                    nameof(LayoutOptions.IncludeRegistrationMarks),
+                    ValidationSeverity.Warning));
+            }
+        }
     }
 
     private void ValidateMeasurement(Mm measurement, string field, ICollection<ValidationError> errors, double? max = null)
@@ -443,6 +551,18 @@ internal sealed class EngineInputValidator
             errors.Add(new ValidationError(
                 EngineErrorCode.InvalidMeasurement,
                 $"Measurement {field} must be between {EngineLimits.MinMm} and {upper} mm.",
+                field));
+        }
+    }
+
+    private void ValidateSignedMeasurement(Mm measurement, string field, ICollection<ValidationError> errors, double? max = null)
+    {
+        var upper = max ?? EngineLimits.MaxMm;
+        if (!measurement.IsFinite || measurement.Value < -upper || measurement.Value > upper)
+        {
+            errors.Add(new ValidationError(
+                EngineErrorCode.InvalidDuplexOffset,
+                $"Measurement {field} must be between {-upper} and {upper} mm.",
                 field));
         }
     }

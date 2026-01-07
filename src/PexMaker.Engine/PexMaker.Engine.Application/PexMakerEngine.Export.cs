@@ -59,6 +59,8 @@ public sealed partial class PexMakerEngine
         var borderPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.BorderThickness.Value, Unit.Millimeter, resolution, PxRounding.Round);
         var cornerPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.CornerRadius.Value, Unit.Millimeter, resolution, PxRounding.Round);
         var bleedPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.Bleed.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var safeAreaPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.SafeArea.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var safeAreaOverlayThicknessPx = UnitConverter.ToPixels((decimal)normalizedProject.Layout.SafeAreaOverlayThickness.Value, Unit.Millimeter, resolution, PxRounding.Round);
         var cutMarkLengthMm = normalizedProject.Layout.CutMarks
             ? NormalizeCutMarkMeasurement(normalizedProject.Layout.CutMarkLength, EngineDefaults.DefaultCutMarkLength)
             : Mm.Zero;
@@ -71,6 +73,18 @@ public sealed partial class PexMakerEngine
         var cutMarkLengthPx = UnitConverter.ToPixels((decimal)cutMarkLengthMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
         var cutMarkThicknessPx = UnitConverter.ToPixels((decimal)cutMarkThicknessMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
         var cutMarkOffsetPx = UnitConverter.ToPixels((decimal)cutMarkOffsetMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var registrationMarkSizeMm = normalizedProject.Layout.IncludeRegistrationMarks
+            ? NormalizeCutMarkMeasurement(normalizedProject.Layout.RegistrationMarkSize, EngineDefaults.DefaultRegistrationMarkSize)
+            : Mm.Zero;
+        var registrationMarkThicknessMm = normalizedProject.Layout.IncludeRegistrationMarks
+            ? NormalizeCutMarkMeasurement(normalizedProject.Layout.RegistrationMarkThickness, EngineDefaults.DefaultRegistrationMarkThickness)
+            : Mm.Zero;
+        var registrationMarkOffsetMm = normalizedProject.Layout.IncludeRegistrationMarks
+            ? NormalizeCutMarkMeasurement(normalizedProject.Layout.RegistrationMarkOffset, EngineDefaults.DefaultRegistrationMarkOffset)
+            : Mm.Zero;
+        var registrationMarkSizePx = UnitConverter.ToPixels((decimal)registrationMarkSizeMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var registrationMarkThicknessPx = UnitConverter.ToPixels((decimal)registrationMarkThicknessMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
+        var registrationMarkOffsetPx = UnitConverter.ToPixels((decimal)registrationMarkOffsetMm.Value, Unit.Millimeter, resolution, PxRounding.Round);
 
         var exportRequest = new SheetExportRequest
         {
@@ -84,6 +98,7 @@ public sealed partial class PexMakerEngine
             IncludeFront = normalizedRequest.IncludeFront,
             IncludeBack = normalizedRequest.IncludeBack,
             IncludeCutMarks = normalizedProject.Layout.CutMarks,
+            CutMarksPerCard = normalizedProject.Layout.CutMarksPerCard,
             CutMarkLengthPx = cutMarkLengthPx,
             CutMarkThicknessPx = cutMarkThicknessPx,
             CutMarkOffsetPx = cutMarkOffsetPx,
@@ -93,6 +108,14 @@ public sealed partial class PexMakerEngine
             CardWidthPx = cardWidthPx,
             CardHeightPx = cardHeightPx,
             BleedPx = bleedPx,
+            SafeAreaPx = safeAreaPx,
+            ShowSafeAreaOverlay = normalizedProject.Layout.ShowSafeAreaOverlay,
+            SafeAreaOverlayThicknessPx = safeAreaOverlayThicknessPx,
+            IncludeRegistrationMarks = normalizedProject.Layout.IncludeRegistrationMarks,
+            RegistrationMarkPlacement = normalizedProject.Layout.RegistrationMarkPlacement,
+            RegistrationMarkSizePx = registrationMarkSizePx,
+            RegistrationMarkThicknessPx = registrationMarkThicknessPx,
+            RegistrationMarkOffsetPx = registrationMarkOffsetPx,
             EnableParallelism = normalizedRequest.EnableParallelism,
             MaxDegreeOfParallelism = Math.Max(1, normalizedRequest.MaxDegreeOfParallelism),
             MaxBufferedPages = Math.Max(1, normalizedRequest.MaxBufferedPages),

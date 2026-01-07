@@ -85,7 +85,7 @@ public sealed record LayoutOptions
     public bool PreferSquareCards { get; init; } = false;
 
     /// <summary>
-    /// Bleed in millimeters.
+    /// Bleed in millimeters. Bleed expands the rendered image beyond the trim size.
     /// </summary>
     public Mm Bleed { get; init; } = Mm.Zero;
 
@@ -93,6 +93,11 @@ public sealed record LayoutOptions
     /// Enables cut marks.
     /// </summary>
     public bool CutMarks { get; init; } = false;
+
+    /// <summary>
+    /// Draw cut marks for every card instead of only the overall grid.
+    /// </summary>
+    public bool CutMarksPerCard { get; init; } = EngineDefaults.DefaultCutMarksPerCard;
 
     /// <summary>
     /// Cut mark length in millimeters.
@@ -108,4 +113,54 @@ public sealed record LayoutOptions
     /// Cut mark offset from the card edge in millimeters.
     /// </summary>
     public Mm CutMarkOffset { get; init; } = EngineDefaults.DefaultCutMarkOffset;
+
+    /// <summary>
+    /// Safe area inset from the trim edge in millimeters.
+    /// </summary>
+    public Mm SafeArea { get; init; } = Mm.Zero;
+
+    /// <summary>
+    /// Show a safe area overlay in exports/previews.
+    /// </summary>
+    public bool ShowSafeAreaOverlay { get; init; } = false;
+
+    /// <summary>
+    /// Safe area overlay stroke thickness in millimeters.
+    /// </summary>
+    public Mm SafeAreaOverlayThickness { get; init; } = EngineDefaults.DefaultSafeAreaOverlayThickness;
+
+    /// <summary>
+    /// Enables registration marks for duplex alignment.
+    /// </summary>
+    public bool IncludeRegistrationMarks { get; init; } = false;
+
+    /// <summary>
+    /// Registration mark size in millimeters.
+    /// </summary>
+    public Mm RegistrationMarkSize { get; init; } = EngineDefaults.DefaultRegistrationMarkSize;
+
+    /// <summary>
+    /// Registration mark line thickness in millimeters.
+    /// </summary>
+    public Mm RegistrationMarkThickness { get; init; } = EngineDefaults.DefaultRegistrationMarkThickness;
+
+    /// <summary>
+    /// Registration mark offset from the grid in millimeters.
+    /// </summary>
+    public Mm RegistrationMarkOffset { get; init; } = EngineDefaults.DefaultRegistrationMarkOffset;
+
+    /// <summary>
+    /// Registration mark placement strategy.
+    /// </summary>
+    public RegistrationMarkPlacement RegistrationMarkPlacement { get; init; } = EngineDefaults.DefaultRegistrationMarkPlacement;
+
+    /// <summary>
+    /// Duplex offset (X) in millimeters applied to the back side only.
+    /// </summary>
+    public Mm DuplexOffsetX { get; init; } = Mm.Zero;
+
+    /// <summary>
+    /// Duplex offset (Y) in millimeters applied to the back side only.
+    /// </summary>
+    public Mm DuplexOffsetY { get; init; } = Mm.Zero;
 }

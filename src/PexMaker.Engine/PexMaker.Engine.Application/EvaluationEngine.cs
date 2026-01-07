@@ -32,7 +32,6 @@ internal sealed class EvaluationEngine
             new GridVisibilityRule(),
             new DuplexSanityRule(),
             new DpiVsCardPixelsRule(),
-            new RotationNotAppliedRule(),
             new FitModeCropRiskRule(),
         ];
     }

@@ -47,6 +47,11 @@ public enum SheetSide
     Back,
 }
 
+public enum RegistrationMarkPlacement
+{
+    CornersOutsideGrid,
+}
+
 public enum EngineErrorCode
 {
     Unknown = 0,
@@ -67,6 +72,9 @@ public enum EngineErrorCode
     InvalidCardSize,
     InvalidBleed,
     InvalidCutMarks,
+    InvalidSafeArea,
+    InvalidRegistrationMarks,
+    InvalidDuplexOffset,
     LayoutDoesNotFit,
     InvalidPageSize,
     ImageTooLarge,

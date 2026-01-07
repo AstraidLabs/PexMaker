@@ -36,9 +36,31 @@ public sealed record LayoutOptionsDto
 
     public bool DrawCutMarks { get; init; }
 
+    public bool? CutMarksPerCard { get; init; }
+
     public double? CutMarkLengthMm { get; init; }
 
     public double? CutMarkThicknessMm { get; init; }
 
     public double? CutMarkOffsetMm { get; init; }
+
+    public double SafeAreaMm { get; init; }
+
+    public bool ShowSafeAreaOverlay { get; init; }
+
+    public double? SafeAreaOverlayThicknessMm { get; init; }
+
+    public bool IncludeRegistrationMarks { get; init; }
+
+    public double? RegistrationMarkSizeMm { get; init; }
+
+    public double? RegistrationMarkThicknessMm { get; init; }
+
+    public double? RegistrationMarkOffsetMm { get; init; }
+
+    public string? RegistrationMarkPlacement { get; init; }
+
+    public double DuplexOffsetMmX { get; init; }
+
+    public double DuplexOffsetMmY { get; init; }
 }

@@ -15,6 +15,7 @@ public sealed record CardRenderOptions(
     FitMode FitMode,
     double AnchorX,
     double AnchorY,
+    double RotationDegrees,
     bool BorderEnabled,
     double BorderThickness,
     double CornerRadius)
@@ -55,6 +56,8 @@ public sealed class SheetExportRequest
 
     public bool IncludeCutMarks { get; init; }
 
+    public bool CutMarksPerCard { get; init; }
+
     public double CutMarkLengthPx { get; init; }
 
     public double CutMarkThicknessPx { get; init; }
@@ -72,6 +75,22 @@ public sealed class SheetExportRequest
     public int CardHeightPx { get; init; }
 
     public int BleedPx { get; init; }
+
+    public int SafeAreaPx { get; init; }
+
+    public bool ShowSafeAreaOverlay { get; init; }
+
+    public int SafeAreaOverlayThicknessPx { get; init; }
+
+    public bool IncludeRegistrationMarks { get; init; }
+
+    public RegistrationMarkPlacement RegistrationMarkPlacement { get; init; } = RegistrationMarkPlacement.CornersOutsideGrid;
+
+    public double RegistrationMarkSizePx { get; init; }
+
+    public double RegistrationMarkThicknessPx { get; init; }
+
+    public double RegistrationMarkOffsetPx { get; init; }
 
     public bool EnableParallelism { get; init; }
 

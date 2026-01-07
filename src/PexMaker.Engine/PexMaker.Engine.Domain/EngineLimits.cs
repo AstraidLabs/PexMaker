@@ -18,6 +18,10 @@ public static class EngineLimits
     public const double MaxCutMarkLengthMm = 10;
     public const double MaxCutMarkThicknessMm = 2;
     public const double MaxCutMarkOffsetMm = 5;
+    public const double MaxRegistrationMarkSizeMm = 20;
+    public const double MaxRegistrationMarkThicknessMm = 2;
+    public const double MaxRegistrationMarkOffsetMm = 10;
+    public const double DuplexOffsetWarningMm = 5;
 
     public const int MinParallelism = 1;
     public const int MaxParallelism = 16;

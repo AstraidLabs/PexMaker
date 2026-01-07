@@ -19,4 +19,19 @@ public sealed record LayoutPreview(
     int PageWidthPx,
     int PageHeightPx,
     int CardWidthPx,
-    int CardHeightPx);
+    int CardHeightPx)
+{
+    public double? BleedMm { get; init; }
+
+    public double? SafeAreaMm { get; init; }
+
+    public bool? ShowSafeAreaOverlay { get; init; }
+
+    public double? DuplexOffsetMmX { get; init; }
+
+    public double? DuplexOffsetMmY { get; init; }
+
+    public bool? CutMarksEnabled { get; init; }
+
+    public bool? RegistrationMarksEnabled { get; init; }
+}
