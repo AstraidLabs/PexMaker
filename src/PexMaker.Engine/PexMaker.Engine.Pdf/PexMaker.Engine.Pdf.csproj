@@ -9,11 +9,10 @@
     <ProjectReference Include="../PexMaker.Engine.Abstractions/PexMaker.Engine.Abstractions.csproj" />
     <ProjectReference Include="../PexMaker.Engine.Application/PexMaker.Engine.Application.csproj" />
     <ProjectReference Include="../PexMaker.Engine.Contracts/PexMaker.Engine.Contracts.csproj" />
-    <ProjectReference Include="../PexMaker.Engine.Pdf/PexMaker.Engine.Pdf.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp" Version="2.88.6" />
+    <PackageReference Include="PDFsharp" Version="6.2.4" />
   </ItemGroup>
 
 </Project>

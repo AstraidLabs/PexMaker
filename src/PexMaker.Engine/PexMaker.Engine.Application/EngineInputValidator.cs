@@ -216,47 +216,97 @@ internal sealed class EngineInputValidator
         var comparer = StringComparer.OrdinalIgnoreCase;
         var knownPaths = new HashSet<string>(comparer);
 
-        foreach (var page in layout.Pages)
+        if (string.Equals(request.Format, "pdf", StringComparison.OrdinalIgnoreCase))
         {
-            if (page.Side == SheetSide.Front && !request.IncludeFront)
+            var sides = new List<SheetSide>();
+            if (request.IncludeFront)
             {
-                continue;
+                sides.Add(SheetSide.Front);
             }
 
-            if (page.Side == SheetSide.Back && !request.IncludeBack)
+            if (request.IncludeBack)
             {
-                continue;
+                sides.Add(SheetSide.Back);
             }
 
-            var prefix = page.Side == SheetSide.Front ? request.NamingPrefixFront : request.NamingPrefixBack;
-            var fileName = Naming.PageFileName(prefix, page.PageNumber, ResolveFormat(request.Format));
-            var outputPath = Path.Combine(outputDirectory, fileName);
-            var fullPath = Path.GetFullPath(outputPath);
-
-            if (!IsWithinDirectory(outputRoot, fullPath))
+            foreach (var side in sides)
             {
-                errors.Add(new ValidationError(
-                    EngineErrorCode.InvalidOutputDirectory,
-                    "Generated output path is outside the output directory.",
-                    nameof(ExportRequest.OutputDirectory)));
-                continue;
+                var prefix = side == SheetSide.Front ? request.NamingPrefixFront : request.NamingPrefixBack;
+                var fileName = Naming.PdfFileName(prefix, side);
+                var outputPath = Path.Combine(outputDirectory, fileName);
+                var fullPath = Path.GetFullPath(outputPath);
+
+                if (!IsWithinDirectory(outputRoot, fullPath))
+                {
+                    errors.Add(new ValidationError(
+                        EngineErrorCode.InvalidOutputDirectory,
+                        "Generated output path is outside the output directory.",
+                        nameof(ExportRequest.OutputDirectory)));
+                    continue;
+                }
+
+                if (!knownPaths.Add(fullPath))
+                {
+                    errors.Add(new ValidationError(
+                        EngineErrorCode.NamingCollision,
+                        $"Output file '{fileName}' would be generated multiple times.",
+                        nameof(ExportRequest)));
+                    continue;
+                }
+
+                if (_fileSystem.FileExists(fullPath))
+                {
+                    errors.Add(new ValidationError(
+                        EngineErrorCode.OutputFileExists,
+                        $"Output file '{fileName}' already exists.",
+                        nameof(ExportRequest.OutputDirectory)));
+                }
             }
-
-            if (!knownPaths.Add(fullPath))
+        }
+        else
+        {
+            foreach (var page in layout.Pages)
             {
-                errors.Add(new ValidationError(
-                    EngineErrorCode.NamingCollision,
-                    $"Output file '{fileName}' would be generated multiple times.",
-                    nameof(ExportRequest)));
-                continue;
-            }
+                if (page.Side == SheetSide.Front && !request.IncludeFront)
+                {
+                    continue;
+                }
 
-            if (_fileSystem.FileExists(fullPath))
-            {
-                errors.Add(new ValidationError(
-                    EngineErrorCode.OutputFileExists,
-                    $"Output file '{fileName}' already exists.",
-                    nameof(ExportRequest.OutputDirectory)));
+                if (page.Side == SheetSide.Back && !request.IncludeBack)
+                {
+                    continue;
+                }
+
+                var prefix = page.Side == SheetSide.Front ? request.NamingPrefixFront : request.NamingPrefixBack;
+                var fileName = Naming.PageFileName(prefix, page.PageNumber, ResolveFormat(request.Format));
+                var outputPath = Path.Combine(outputDirectory, fileName);
+                var fullPath = Path.GetFullPath(outputPath);
+
+                if (!IsWithinDirectory(outputRoot, fullPath))
+                {
+                    errors.Add(new ValidationError(
+                        EngineErrorCode.InvalidOutputDirectory,
+                        "Generated output path is outside the output directory.",
+                        nameof(ExportRequest.OutputDirectory)));
+                    continue;
+                }
+
+                if (!knownPaths.Add(fullPath))
+                {
+                    errors.Add(new ValidationError(
+                        EngineErrorCode.NamingCollision,
+                        $"Output file '{fileName}' would be generated multiple times.",
+                        nameof(ExportRequest)));
+                    continue;
+                }
+
+                if (_fileSystem.FileExists(fullPath))
+                {
+                    errors.Add(new ValidationError(
+                        EngineErrorCode.OutputFileExists,
+                        $"Output file '{fileName}' already exists.",
+                        nameof(ExportRequest.OutputDirectory)));
+                }
             }
         }
 
@@ -731,14 +781,15 @@ internal sealed class EngineInputValidator
             return "png";
         }
 
-        if (string.Equals(value, "png", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(value, "png", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "pdf", StringComparison.OrdinalIgnoreCase))
         {
-            return "png";
+            return value.ToLowerInvariant();
         }
 
         errors.Add(new ValidationError(
             EngineErrorCode.UnsupportedFormat,
-            $"Format '{value}' is not supported. Only 'png' is allowed.",
+            $"Format '{value}' is not supported. Only 'png' or 'pdf' are allowed.",
             nameof(ExportRequest.Format)));
         return value;
     }

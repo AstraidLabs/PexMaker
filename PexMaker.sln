@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PexMaker.Engine.Infrastruct
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PexMaker.Engine.Contracts", "src\PexMaker.Engine\PexMaker.Engine.Contracts\PexMaker.Engine.Contracts.csproj", "{45A89DBD-0DF7-416D-98A9-7849A09FD479}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PexMaker.Engine.Pdf", "src\PexMaker.Engine\PexMaker.Engine.Pdf\PexMaker.Engine.Pdf.csproj", "{DB91465A-6627-445D-AE52-15AF731F7460}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -101,6 +103,18 @@ Global
 		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x64.Build.0 = Release|Any CPU
 		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x86.ActiveCfg = Release|Any CPU
 		{45A89DBD-0DF7-416D-98A9-7849A09FD479}.Release|x86.Build.0 = Release|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Debug|x64.Build.0 = Debug|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Debug|x86.Build.0 = Debug|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Release|x64.ActiveCfg = Release|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Release|x64.Build.0 = Release|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Release|x86.ActiveCfg = Release|Any CPU
+		{DB91465A-6627-445D-AE52-15AF731F7460}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -113,5 +127,6 @@ Global
 		{EF8720B7-5273-4E27-8555-9C6577256DE5} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
 		{C275FFC7-D001-48C5-9D70-3D93756426F3} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
 		{45A89DBD-0DF7-416D-98A9-7849A09FD479} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
+		{DB91465A-6627-445D-AE52-15AF731F7460} = {AB40947F-B4AE-62CD-36E1-14DD04D3DDAF}
 	EndGlobalSection
 EndGlobal
