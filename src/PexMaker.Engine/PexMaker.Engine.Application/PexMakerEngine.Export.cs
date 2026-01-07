@@ -18,10 +18,10 @@ public sealed partial class PexMakerEngine
             return new ExportResult(false, Array.Empty<string>(), validation);
         }
 
-        if (project.BackImage is null)
+        var formatResult = ResolveFormat(request.Format);
+        if (formatResult.Error is not null)
         {
-            var error = new ValidationError(EngineErrorCode.MissingBackImage, "Back image is required", nameof(project.BackImage));
-            var invalidResult = new ProjectValidationResult(new[] { error }, validation.Warnings);
+            var invalidResult = new ProjectValidationResult(new[] { formatResult.Error }, validation.Warnings);
             return new ExportResult(false, Array.Empty<string>(), invalidResult);
         }
 
@@ -29,10 +29,11 @@ public sealed partial class PexMakerEngine
         var layout = BuildLayoutPlan(project, deck);
 
         var frontPages = (int)Math.Ceiling(deck.CardCount / (double)layout.Grid.PerPage);
-        var totalSheets = layout.Pages.Count;
+        var totalSheets = layout.Pages.Count(page => (page.Side == SheetSide.Front && request.IncludeFront)
+            || (page.Side == SheetSide.Back && request.IncludeBack));
 
         var safetyErrors = new List<ValidationError>();
-        if (frontPages > EngineLimits.MaxPages)
+        if (request.IncludeFront && frontPages > EngineLimits.MaxPages)
         {
             safetyErrors.Add(new ValidationError(EngineErrorCode.ExceedsPageLimit, $"Page count {frontPages} exceeds limit {EngineLimits.MaxPages}", nameof(project.Layout)));
         }
@@ -48,85 +49,53 @@ public sealed partial class PexMakerEngine
             return new ExportResult(false, Array.Empty<string>(), invalidResult);
         }
 
-        _fileSystem.CreateDirectory(request.OutputDirectory);
-
-        var buffersToDispose = new List<IAsyncDisposable>();
         var cardWidthPx = Units.MmToPx(project.Layout.CardWidth, project.Dpi);
         var cardHeightPx = Units.MmToPx(project.Layout.CardHeight, project.Dpi);
         var borderPx = Units.MmToPx(project.Layout.BorderThickness, project.Dpi);
         var cornerPx = Units.MmToPx(project.Layout.CornerRadius, project.Dpi);
 
-        try
+        _fileSystem.CreateDirectory(request.OutputDirectory);
+
+        var exportRequest = new SheetExportRequest
         {
-            var frontCache = new Dictionary<string, IImageBuffer>(StringComparer.OrdinalIgnoreCase);
+            OutputDirectory = request.OutputDirectory,
+            NamingPrefixFront = request.NamingPrefixFront,
+            NamingPrefixBack = request.NamingPrefixBack,
+            Format = formatResult.Format,
+            Layout = layout,
+            Cards = deck.Cards,
+            BackImage = deck.Back,
+            IncludeFront = request.IncludeFront,
+            IncludeBack = request.IncludeBack,
+            IncludeCutMarks = project.Layout.CutMarks,
+            BorderEnabled = project.Layout.BorderEnabled,
+            BorderThicknessPx = borderPx,
+            CornerRadiusPx = cornerPx,
+            CardWidthPx = cardWidthPx,
+            CardHeightPx = cardHeightPx,
+            EnableParallelism = request.EnableParallelism,
+            MaxDegreeOfParallelism = Math.Max(1, request.MaxDegreeOfParallelism),
+            MaxBufferedPages = Math.Max(1, request.MaxBufferedPages),
+            MaxBufferedCards = Math.Max(1, request.MaxBufferedCards),
+            MaxCacheItems = Math.Max(1, request.MaxCacheItems),
+            MaxEstimatedWorkingSetBytes = request.MaxEstimatedWorkingSetBytes,
+        };
 
-            foreach (var front in deck.Cards.DistinctBy(f => f.Path))
-            {
-                await using var stream = _fileSystem.OpenRead(front.Path);
-                await using var decoded = await _imageDecoder.DecodeAsync(stream, cancellationToken).ConfigureAwait(false);
-                var cardOptions = new CardRenderOptions(
-                    cardWidthPx,
-                    cardHeightPx,
-                    front.FitMode,
-                    MathEx.Clamp01(front.AnchorX),
-                    MathEx.Clamp01(front.AnchorY),
-                    project.Layout.BorderEnabled,
-                    borderPx,
-                    cornerPx);
+        var exportResult = await _sheetExporter.ExportAsync(exportRequest, cancellationToken).ConfigureAwait(false);
+        var combinedWarnings = validation.Warnings.Concat(exportResult.ValidationResult.Warnings).ToArray();
+        var combinedErrors = exportResult.ValidationResult.Errors;
+        var combinedResult = new ProjectValidationResult(combinedErrors, combinedWarnings);
+        return new ExportResult(exportResult.IsSuccess, exportResult.Files, combinedResult);
+    }
 
-                var rendered = await _imageProcessor.RenderCardAsync(decoded, cardOptions, cancellationToken).ConfigureAwait(false);
-                buffersToDispose.Add(rendered);
-                frontCache[front.Path] = rendered;
-            }
-
-            await using var backStream = _fileSystem.OpenRead(project.BackImage.Path);
-            await using var backDecoded = await _imageDecoder.DecodeAsync(backStream, cancellationToken).ConfigureAwait(false);
-            var backOptions = new CardRenderOptions(
-                cardWidthPx,
-                cardHeightPx,
-                project.BackImage.FitMode,
-                MathEx.Clamp01(project.BackImage.AnchorX),
-                MathEx.Clamp01(project.BackImage.AnchorY),
-                project.Layout.BorderEnabled,
-                borderPx,
-                cornerPx);
-            var backRendered = await _imageProcessor.RenderCardAsync(backDecoded, backOptions, cancellationToken).ConfigureAwait(false);
-            buffersToDispose.Add(backRendered);
-
-            var sheetEntries = new List<SheetExportEntry>();
-            foreach (var page in layout.Pages)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var placements = new List<PagePlacement>();
-                foreach (var placement in page.Placements)
-                {
-                    var cardImage = page.Side == SheetSide.Front
-                        ? frontCache[deck.Cards[placement.DeckIndex].Path]
-                        : backRendered;
-
-                    placements.Add(new PagePlacement(cardImage, placement.X, placement.Y, placement.Width, placement.Height));
-                }
-
-                var renderRequest = new PageRenderRequest(layout.PageWidthPx, layout.PageHeightPx, placements, project.Layout.CutMarks);
-                var renderedPage = await _pageRenderer.ComposePageAsync(renderRequest, cancellationToken).ConfigureAwait(false);
-                buffersToDispose.Add(renderedPage);
-
-                var prefix = page.Side == SheetSide.Front ? request.FrontPrefix : request.BackPrefix;
-                var fileName = Naming.PageFileName(prefix, page.PageNumber, request.Format);
-                sheetEntries.Add(new SheetExportEntry(fileName, renderedPage, page.Side));
-            }
-
-            var exportRequest = new SheetExportRequest(request.OutputDirectory, request.Format, sheetEntries);
-            var files = await _sheetExporter.ExportAsync(exportRequest, cancellationToken).ConfigureAwait(false);
-            return new ExportResult(true, files, validation);
-        }
-        finally
+    private static (ExportImageFormat Format, ValidationError? Error) ResolveFormat(string? format)
+    {
+        if (string.IsNullOrWhiteSpace(format) || string.Equals(format, "png", StringComparison.OrdinalIgnoreCase))
         {
-            foreach (var disposable in buffersToDispose)
-            {
-                await disposable.DisposeAsync().ConfigureAwait(false);
-            }
+            return (ExportImageFormat.Png, null);
         }
+
+        var error = new ValidationError(EngineErrorCode.UnsupportedFormat, $"Format '{format}' is not supported. Only 'png' is allowed.", nameof(ExportRequest.Format));
+        return (ExportImageFormat.Png, error);
     }
 }

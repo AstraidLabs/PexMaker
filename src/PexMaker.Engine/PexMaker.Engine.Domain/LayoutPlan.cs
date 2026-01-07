@@ -1,7 +1,4 @@
-using PexMaker.Engine.Abstractions;
-using PexMaker.Engine.Domain;
-
-namespace PexMaker.Engine.Application;
+namespace PexMaker.Engine.Domain;
 
 public sealed record LayoutGrid(int Columns, int Rows, int PerPage);
 

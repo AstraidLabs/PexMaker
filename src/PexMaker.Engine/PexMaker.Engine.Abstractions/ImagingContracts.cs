@@ -25,12 +25,6 @@ public sealed record PagePlacement(IImageBuffer Image, int X, int Y, int Width, 
 
 public sealed record PageRenderRequest(int PageWidth, int PageHeight, IReadOnlyList<PagePlacement> Placements, bool IncludeCutMarks);
 
-public enum SheetSide
-{
-    Front,
-    Back,
-}
-
 public enum ExportImageFormat
 {
     Png,
@@ -38,9 +32,55 @@ public enum ExportImageFormat
     Webp,
 }
 
-public sealed record SheetExportEntry(string FileName, IImageBuffer Image, SheetSide Side);
+public sealed class SheetExportRequest
+{
+    public required string OutputDirectory { get; init; }
 
-public sealed record SheetExportRequest(string Directory, ExportImageFormat Format, IReadOnlyList<SheetExportEntry> Sheets);
+    public required string NamingPrefixFront { get; init; }
+
+    public required string NamingPrefixBack { get; init; }
+
+    public ExportImageFormat Format { get; init; } = ExportImageFormat.Png;
+
+    public required LayoutPlan Layout { get; init; }
+
+    public required IReadOnlyList<ImageRef> Cards { get; init; }
+
+    public required ImageRef BackImage { get; init; }
+
+    public bool IncludeFront { get; init; } = true;
+
+    public bool IncludeBack { get; init; } = true;
+
+    public bool IncludeCutMarks { get; init; }
+
+    public bool BorderEnabled { get; init; }
+
+    public double BorderThicknessPx { get; init; }
+
+    public double CornerRadiusPx { get; init; }
+
+    public int CardWidthPx { get; init; }
+
+    public int CardHeightPx { get; init; }
+
+    public bool EnableParallelism { get; init; }
+
+    public int MaxDegreeOfParallelism { get; init; }
+
+    public int MaxBufferedPages { get; init; }
+
+    public int MaxBufferedCards { get; init; }
+
+    public int MaxCacheItems { get; init; }
+
+    public long MaxEstimatedWorkingSetBytes { get; init; }
+}
+
+public sealed record SheetExportResult(IReadOnlyList<string> Files, ProjectValidationResult ValidationResult)
+{
+    public bool IsSuccess => ValidationResult.IsValid;
+}
 
 public interface IImageDecoder
 {
@@ -59,5 +99,5 @@ public interface IPageRenderer
 
 public interface ISheetExporter
 {
-    Task<IReadOnlyList<string>> ExportAsync(SheetExportRequest request, CancellationToken cancellationToken);
+    Task<SheetExportResult> ExportAsync(SheetExportRequest request, CancellationToken cancellationToken);
 }

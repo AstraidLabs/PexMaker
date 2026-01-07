@@ -8,13 +8,10 @@ public static class PexMakerEngineFactory
     public static PexMakerEngine CreateDefault()
     {
         IFileSystem fileSystem = new FileSystem();
-        IImageDecoder decoder = new SkiaImageDecoder();
-        IImageProcessor processor = new SkiaImageProcessor();
-        IPageRenderer renderer = new SkiaPageRenderer();
-        ISheetExporter exporter = new SkiaSheetExporter();
+        ISheetExporter exporter = new SkiaSheetExporter(fileSystem);
         IRandomProvider randomProvider = new RandomProvider();
         IProjectSerializer serializer = new JsonProjectSerializer();
 
-        return new PexMakerEngine(fileSystem, decoder, processor, renderer, exporter, randomProvider, serializer);
+        return new PexMakerEngine(fileSystem, exporter, randomProvider, serializer);
     }
 }
