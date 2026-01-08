@@ -37,8 +37,9 @@ public sealed class PdfSharpDocumentExporter : IPdfDocumentExporter
                 page.Height = XUnit.FromMillimeter(request.PageHeightMm);
 
                 using var graphics = XGraphics.FromPdfPage(page);
-                using var image = XImage.FromStream(() => new MemoryStream(request.Pages[i]));
-                graphics.DrawImage(image, 0, 0, page.Width, page.Height);
+                using var imageStream = new MemoryStream(request.Pages[i]);
+                using var image = XImage.FromStream(imageStream);
+                graphics.DrawImage(image, 0, 0, page.Width.Point, page.Height.Point);
 
                 request.Progress?.Report(new EngineProgress("Pdf:AddingPages", i + 1, totalPages));
             }
