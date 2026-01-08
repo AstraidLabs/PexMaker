@@ -145,8 +145,8 @@ public sealed partial class PexMakerEngine
                 EngineErrorCode.UnsupportedFormat,
                 "PDF export is unavailable because no PDF exporter or rasterizer is configured.",
                 nameof(ExportRequest.Format));
-            var combinedValidation = ProjectValidationResult.Combine(exportValidation, ProjectValidationResult.Failure(new[] { error }));
-            return new ExportResult(false, Array.Empty<string>(), combinedValidation);
+            var pdfValidation = ProjectValidationResult.Combine(exportValidation, ProjectValidationResult.Failure(new[] { error }));
+            return new ExportResult(false, Array.Empty<string>(), pdfValidation);
         }
 
         var pdfFiles = new List<string>();
