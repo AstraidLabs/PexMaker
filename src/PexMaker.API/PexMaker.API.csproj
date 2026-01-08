@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PexMaker.Engine\PexMaker.Engine.Application\PexMaker.Engine.Application.csproj" />
+    <ProjectReference Include="..\PexMaker.Engine\PexMaker.Engine.Infrastructure\PexMaker.Engine.Infrastructure.csproj" />
+    <ProjectReference Include="..\PexMaker.Engine\PexMaker.Engine.Abstractions\PexMaker.Engine.Abstractions.csproj" />
+  </ItemGroup>
+</Project>
