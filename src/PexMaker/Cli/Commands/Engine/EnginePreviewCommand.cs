@@ -26,7 +26,7 @@ internal sealed class EnginePreviewCommand : AsyncCommand<EnginePreviewCommand.S
         public string? PresetId { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -41,9 +41,9 @@ internal sealed class EnginePreviewCommand : AsyncCommand<EnginePreviewCommand.S
             }
 
             var api = _factory.Create(settings.Workspace);
-            var json = await File.ReadAllTextAsync(settings.FilePath, context.CancellationToken).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(settings.FilePath, cancellationToken).ConfigureAwait(false);
             var mappingMode = MappingModeParser.Parse(settings.Mapping);
-            var result = await api.PreviewProjectJsonAsync(json, settings.PresetId, mappingMode, context.CancellationToken)
+            var result = await api.PreviewProjectJsonAsync(json, settings.PresetId, mappingMode, cancellationToken)
                 .ConfigureAwait(false);
 
             if (settings.JsonOutput)

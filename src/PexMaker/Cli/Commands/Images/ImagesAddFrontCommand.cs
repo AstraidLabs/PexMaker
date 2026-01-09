@@ -31,7 +31,7 @@ internal sealed class ImagesAddFrontCommand : AsyncCommand<ImagesAddFrontCommand
         public bool Move { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -46,7 +46,7 @@ internal sealed class ImagesAddFrontCommand : AsyncCommand<ImagesAddFrontCommand
                 settings.From,
                 settings.Recursive,
                 copy: !settings.Move,
-                context.CancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (settings.JsonOutput)
             {

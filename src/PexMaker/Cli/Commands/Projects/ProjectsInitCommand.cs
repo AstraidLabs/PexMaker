@@ -24,7 +24,7 @@ internal sealed class ProjectsInitCommand : Command<ProjectsInitCommand.Settings
         public string? Name { get; init; }
     }
 
-    public override int Execute(CommandContext context, Settings settings)
+    public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(settings.ProjectId))
         {

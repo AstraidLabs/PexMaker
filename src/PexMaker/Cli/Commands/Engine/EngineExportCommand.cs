@@ -36,7 +36,7 @@ internal sealed class EngineExportCommand : AsyncCommand<EngineExportCommand.Set
         public bool Back { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -61,7 +61,7 @@ internal sealed class EngineExportCommand : AsyncCommand<EngineExportCommand.Set
             }
 
             var api = _factory.Create(settings.Workspace);
-            var json = await File.ReadAllTextAsync(settings.FilePath, context.CancellationToken).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(settings.FilePath, cancellationToken).ConfigureAwait(false);
             var mappingMode = MappingModeParser.Parse(settings.Mapping);
             var includeFront = settings.Front || (!settings.Front && !settings.Back);
             var includeBack = settings.Back || (!settings.Front && !settings.Back);
@@ -80,7 +80,7 @@ internal sealed class EngineExportCommand : AsyncCommand<EngineExportCommand.Set
                 Progress = progress,
             };
 
-            var result = await api.ExportProjectJsonAsync(json, request, mappingMode, context.CancellationToken).ConfigureAwait(false);
+            var result = await api.ExportProjectJsonAsync(json, request, mappingMode, cancellationToken).ConfigureAwait(false);
 
             if (settings.JsonOutput)
             {
