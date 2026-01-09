@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using PexMaker.Cli;
 using PexMaker.Cli.Commands.Images;
 using PexMaker.Cli.Commands.Make;
 using PexMaker.Cli.Commands.Engine;

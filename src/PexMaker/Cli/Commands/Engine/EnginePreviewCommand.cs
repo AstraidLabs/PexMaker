@@ -1,4 +1,5 @@
 using PexMaker.API;
+using PexMaker.Cli;
 using PexMaker.Cli.Helpers;
 using PexMaker.Cli.Infrastructure;
 using PexMaker.Engine.Application;

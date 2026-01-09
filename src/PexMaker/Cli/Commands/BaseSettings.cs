@@ -1,4 +1,5 @@
 using PexMaker.Cli.Helpers;
+using PexMaker.Cli;
 using Spectre.Console.Cli;
 
 namespace PexMaker.Cli.Commands;
