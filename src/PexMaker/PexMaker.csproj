@@ -1,8 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\PexMaker.API\PexMaker.API.csproj" />
     <ProjectReference Include="..\PexMaker.Engine\PexMaker.Engine.Application\PexMaker.Engine.Application.csproj" />
     <ProjectReference Include="..\PexMaker.Engine\PexMaker.Engine.Infrastructure\PexMaker.Engine.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Spectre.Console" Version="0.54.0" />
+    <PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
   </ItemGroup>
 
   <PropertyGroup>
