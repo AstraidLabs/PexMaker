@@ -56,7 +56,7 @@ internal sealed class MakeCommand : AsyncCommand<MakeCommand.Settings>
         public bool IncludeCutMarks { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -79,7 +79,7 @@ internal sealed class MakeCommand : AsyncCommand<MakeCommand.Settings>
                 new[] { settings.FrontDir },
                 recursive: false,
                 copy: true,
-                context.CancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             ImportResult? backResult = null;
             var hasBack = !string.IsNullOrWhiteSpace(settings.BackFile);
@@ -89,7 +89,7 @@ internal sealed class MakeCommand : AsyncCommand<MakeCommand.Settings>
                     settings.ProjectId,
                     settings.BackFile!,
                     copy: true,
-                    context.CancellationToken).ConfigureAwait(false);
+                    cancellationToken).ConfigureAwait(false);
 
                 if (backResult.Added == 0)
                 {
@@ -115,7 +115,7 @@ internal sealed class MakeCommand : AsyncCommand<MakeCommand.Settings>
             var buildResult = await api.BuildEngineProjectAsync(
                 settings.ProjectId,
                 buildOptions,
-                context.CancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (!buildResult.Succeeded)
             {
@@ -130,12 +130,12 @@ internal sealed class MakeCommand : AsyncCommand<MakeCommand.Settings>
                 return 2;
             }
 
-            var projectJson = await File.ReadAllTextAsync(buildResult.ProjectJsonPath, context.CancellationToken)
+            var projectJson = await File.ReadAllTextAsync(buildResult.ProjectJsonPath, cancellationToken)
                 .ConfigureAwait(false);
             var validationResult = await api.ValidateProjectJsonAsync(
                 projectJson,
                 mappingMode,
-                context.CancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (!validationResult.Succeeded)
             {
@@ -166,7 +166,7 @@ internal sealed class MakeCommand : AsyncCommand<MakeCommand.Settings>
                 settings.ProjectId,
                 request,
                 mappingMode,
-                context.CancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (!exportResult.Succeeded)
             {

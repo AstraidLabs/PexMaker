@@ -5,9 +5,9 @@ namespace PexMaker.Cli.Infrastructure;
 
 internal sealed class TypeResolver : ITypeResolver, IDisposable
 {
-    private readonly ServiceProvider _provider;
+    private readonly IServiceProvider _provider;
 
-    public TypeResolver(ServiceProvider provider)
+    public TypeResolver(IServiceProvider provider)
     {
         _provider = provider ?? throw new ArgumentNullException(nameof(provider));
     }
@@ -19,6 +19,9 @@ internal sealed class TypeResolver : ITypeResolver, IDisposable
 
     public void Dispose()
     {
-        _provider.Dispose();
+        if (_provider is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 }

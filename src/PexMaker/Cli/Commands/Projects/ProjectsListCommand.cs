@@ -14,7 +14,7 @@ internal sealed class ProjectsListCommand : Command<BaseSettings>
         _factory = factory ?? throw new ArgumentNullException(nameof(factory));
     }
 
-    public override int Execute(CommandContext context, BaseSettings settings)
+    public override int Execute(CommandContext context, BaseSettings settings, CancellationToken cancellationToken)
     {
         var api = _factory.Create(settings.Workspace);
         var projects = api.ListProjects();

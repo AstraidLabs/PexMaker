@@ -28,7 +28,7 @@ internal sealed class ImagesSetBackCommand : AsyncCommand<ImagesSetBackCommand.S
         public bool Move { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -42,7 +42,7 @@ internal sealed class ImagesSetBackCommand : AsyncCommand<ImagesSetBackCommand.S
                 settings.ProjectId,
                 settings.FilePath,
                 copy: !settings.Move,
-                context.CancellationToken).ConfigureAwait(false);
+                cancellationToken).ConfigureAwait(false);
 
             if (settings.JsonOutput)
             {

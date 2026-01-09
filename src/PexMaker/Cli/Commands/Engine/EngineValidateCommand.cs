@@ -22,7 +22,7 @@ internal sealed class EngineValidateCommand : AsyncCommand<EngineValidateCommand
         public string FilePath { get; init; } = string.Empty;
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -37,9 +37,9 @@ internal sealed class EngineValidateCommand : AsyncCommand<EngineValidateCommand
             }
 
             var api = _factory.Create(settings.Workspace);
-            var json = await File.ReadAllTextAsync(settings.FilePath, context.CancellationToken).ConfigureAwait(false);
+            var json = await File.ReadAllTextAsync(settings.FilePath, cancellationToken).ConfigureAwait(false);
             var mappingMode = MappingModeParser.Parse(settings.Mapping);
-            var result = await api.ValidateProjectJsonAsync(json, mappingMode, context.CancellationToken).ConfigureAwait(false);
+            var result = await api.ValidateProjectJsonAsync(json, mappingMode, cancellationToken).ConfigureAwait(false);
 
             if (settings.JsonOutput)
             {

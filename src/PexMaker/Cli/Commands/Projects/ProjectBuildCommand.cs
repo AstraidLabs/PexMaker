@@ -40,7 +40,7 @@ internal sealed class ProjectBuildCommand : AsyncCommand<ProjectBuildCommand.Set
         public bool IncludeCutMarks { get; init; }
     }
 
-    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings)
+    public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
     {
         try
         {
@@ -53,7 +53,7 @@ internal sealed class ProjectBuildCommand : AsyncCommand<ProjectBuildCommand.Set
                 settings.BleedMm,
                 settings.SafeAreaMm);
 
-            var result = await api.BuildEngineProjectAsync(settings.ProjectId, options, context.CancellationToken)
+            var result = await api.BuildEngineProjectAsync(settings.ProjectId, options, cancellationToken)
                 .ConfigureAwait(false);
 
             if (settings.JsonOutput)
