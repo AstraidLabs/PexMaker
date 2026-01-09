@@ -58,7 +58,9 @@ public sealed class PexMakerApi : IPexMakerApi
         }
 
         var existingNames = new HashSet<string>(
-            Directory.EnumerateFiles(paths.FrontDir).Select(Path.GetFileName),
+            Directory.EnumerateFiles(paths.FrontDir)
+                .Select(Path.GetFileName)
+                .OfType<string>(),
             NameComparer);
 
         var addedFiles = new List<string>();
