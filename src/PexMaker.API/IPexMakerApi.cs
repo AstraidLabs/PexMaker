@@ -35,6 +35,47 @@ public interface IPexMakerApi
     ProjectPlaceholder SavePlaceholder(string projectId, ProjectPlaceholder placeholder);
 
     /// <summary>
+    /// Imports front images into the workspace.
+    /// </summary>
+    Task<ImportResult> AddFrontImagesAsync(
+        string projectId,
+        IEnumerable<string> inputPaths,
+        bool recursive,
+        bool copy,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Sets the back image for the workspace.
+    /// </summary>
+    Task<ImportResult> SetBackImageAsync(
+        string projectId,
+        string inputFile,
+        bool copy,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Builds project.json from the workspace content.
+    /// </summary>
+    Task<BuildProjectResult> BuildEngineProjectAsync(
+        string projectId,
+        BuildProjectOptions options,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Exports a project by project identifier.
+    /// </summary>
+    Task<ApiOperationResult> ExportProjectAsync(
+        string projectId,
+        ExportRequest request,
+        MappingMode mappingMode,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Lists available layout presets.
+    /// </summary>
+    IReadOnlyList<LayoutPresetInfo> GetPresets();
+
+    /// <summary>
     /// Validates project JSON input.
     /// </summary>
     Task<ApiOperationResult> ValidateProjectJsonAsync(

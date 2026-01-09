@@ -80,3 +80,57 @@ public sealed record ApiOperationResult(
     object? Data,
     IReadOnlyList<ApiIssue> Issues
 );
+
+/// <summary>
+/// Describes the result of importing image assets.
+/// </summary>
+/// <param name="Added">Number of files imported.</param>
+/// <param name="Files">Imported file destinations.</param>
+/// <param name="Issues">Issues captured during import.</param>
+public sealed record ImportResult(
+    int Added,
+    IReadOnlyList<string> Files,
+    IReadOnlyList<ApiIssue> Issues
+);
+
+/// <summary>
+/// Options for building an engine project.json.
+/// </summary>
+/// <param name="PairCount">Optional override for pair count.</param>
+/// <param name="Dpi">Optional override for output DPI.</param>
+/// <param name="PresetId">Optional preset identifier.</param>
+/// <param name="IncludeCutMarks">Whether to include cut marks.</param>
+/// <param name="BleedMm">Bleed in millimeters.</param>
+/// <param name="SafeAreaMm">Safe area inset in millimeters.</param>
+public sealed record BuildProjectOptions(
+    int? PairCount,
+    int? Dpi,
+    string? PresetId,
+    bool IncludeCutMarks,
+    double BleedMm,
+    double SafeAreaMm
+);
+
+/// <summary>
+/// Describes the result of building an engine project.json.
+/// </summary>
+/// <param name="Succeeded">Whether the build succeeded.</param>
+/// <param name="ProjectJsonPath">Absolute path to the project.json.</param>
+/// <param name="Issues">Issues captured during build.</param>
+public sealed record BuildProjectResult(
+    bool Succeeded,
+    string ProjectJsonPath,
+    IReadOnlyList<ApiIssue> Issues
+);
+
+/// <summary>
+/// Provides information about a layout preset.
+/// </summary>
+/// <param name="Id">Preset identifier.</param>
+/// <param name="Name">Preset display name.</param>
+/// <param name="Description">Preset description.</param>
+public sealed record LayoutPresetInfo(
+    string Id,
+    string Name,
+    string? Description
+);
