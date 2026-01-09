@@ -1,6 +1,8 @@
 using PexMaker.Engine.Abstractions;
 using Spectre.Console.Cli;
 
+using PexMaker.Cli;
+
 namespace PexMaker.Cli.Helpers;
 
 internal static class MappingModeParser
